@@ -188,7 +188,7 @@ CREATE TABLE `grooming_sessions` (
     `pet_id` INT NOT NULL,
     `groomer_id` INT,
     `service_id` INT,
-    `progress_status` ENUM('Checked-in', 'Bathing', 'Scissor & Styling', 'Ready for Pick-up', 'Completed') DEFAULT 'Checked-in',
+    `progress_status` VARCHAR(50) DEFAULT 'Checked-in',
     `coat_condition` VARCHAR(100),
     `observations` TEXT,
     `photo_url` TEXT,

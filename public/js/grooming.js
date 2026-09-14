@@ -30,8 +30,10 @@ const GroomingModule = {
             };
 
             data.queue.forEach(item => {
-                if (stages[item.progress_status]) {
-                    stages[item.progress_status].push(item);
+                let st = item.progress_status;
+                if (st === 'Scissor & Styling') st = 'Styling';
+                if (stages[st]) {
+                    stages[st].push(item);
                 }
             });
 

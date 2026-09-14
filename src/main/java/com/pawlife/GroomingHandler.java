@@ -60,6 +60,9 @@ public class GroomingHandler implements HttpHandler {
     private void handleUpdateStatus(HttpExchange exchange, long sessionId) throws Exception {
         Map<String, Object> body = HttpUtils.readJsonBody(exchange);
         String newStatus = (String) body.get("progress_status");
+        if (newStatus != null && "Styling".equalsIgnoreCase(newStatus.trim())) {
+            newStatus = "Scissor & Styling";
+        }
         String obs = (String) body.getOrDefault("observations", "Grooming session updated.");
 
         if (newStatus == null) {

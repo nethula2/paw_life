@@ -157,74 +157,107 @@ const PetEhrModule = {
         const modal = document.getElementById('ehr-detail-modal');
         if (!modal) return;
 
+        const safeSetText = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text !== undefined && text !== null ? text : '--';
+        };
+
         try {
             const res = await fetch(`/api/pets/${petId}`);
             const data = await res.json();
             if (!data.success) throw new Error(data.error);
 
             const p = data.pet;
-            document.getElementById('ehr-pet-name').textContent = p.pet_name;
-            document.getElementById('ehr-pet-meta').textContent = `${p.species} • ${p.breed} • ${p.gender} • Born: ${p.date_of_birth}`;
-            document.getElementById('ehr-chip-no').textContent = p.microchip_no || 'N/A';
-            document.getElementById('ehr-owner-name').textContent = p.owner_name;
-            document.getElementById('ehr-owner-phone').textContent = p.owner_phone;
-            document.getElementById('ehr-allergies-pill').textContent = p.allergies || 'None Recorded';
+            safeSetText('ehr-pet-name', p.pet_name);
+            safeSetText('ehr-pet-meta', `${p.species} • ${p.breed} • ${p.gender} • Born: ${p.date_of_birth}`);
+            safeSetText('ehr-chip-no', p.microchip_no || 'N/A');
+            safeSetText('ehr-pet-microchip', p.microchip_no || 'N/A');
+            safeSetText('ehr-owner-name', p.owner_name);
+            safeSetText('ehr-owner-phone', p.owner_phone);
+            safeSetText('ehr-pet-owner', `${p.owner_name} (${p.owner_phone || 'No phone'})`);
+            safeSetText('ehr-pet-gender', p.gender || '--');
+            safeSetText('ehr-pet-dob', p.date_of_birth || '--');
+            safeSetText('ehr-allergies-pill', p.allergies || 'None Recorded');
 
             // Render Consultations
             const consultList = document.getElementById('ehr-consultations-list');
-            if (data.consultations.length === 0) {
-                consultList.innerHTML = '<p class="text-xs text-slate-500 italic p-3 bg-slate-50 rounded-xl">No past consultations on record.</p>';
-            } else {
-                consultList.innerHTML = data.consultations.map(c => `
-                    <div class="border-2 border-slate-800 rounded-xl p-3.5 bg-white shadow-sm">
-                        <div class="flex justify-between items-start mb-1.5">
-                            <div>
-                                <span class="font-extrabold text-sm text-slate-900">${c.diagnosis}</span>
-                                <div class="text-[11px] text-slate-500 font-mono">${c.consultation_date} • Attending: Dr. ${c.vet_name}</div>
+            if (consultList) {
+                if (!data.consultations || data.consultations.length === 0) {
+                    consultList.innerHTML = '<p class="text-xs text-slate-500 italic p-3 bg-slate-50 rounded-xl">No past consultations on record.</p>';
+                } else {
+                    consultList.innerHTML = data.consultations.map(c => `
+                        <div class="border-2 border-slate-800 rounded-xl p-3.5 bg-white shadow-sm">
+                            <div class="flex justify-between items-start mb-1.5">
+                                <div>
+                                    <span class="font-extrabold text-sm text-slate-900">${c.diagnosis}</span>
+                                    <div class="text-[11px] text-slate-500 font-mono">${c.consultation_date} • Attending: Dr. ${c.vet_name}</div>
+                                </div>
+                                <span class="badge-tag bg-emerald-100 text-emerald-800">Verified Diagnosis</span>
                             </div>
-                            <span class="badge-tag bg-emerald-100 text-emerald-800">Verified Diagnosis</span>
+                            <p class="text-xs text-slate-600 mb-1"><strong>Symptoms:</strong> ${c.symptoms}</p>
+                            <p class="text-xs text-slate-600 mb-1"><strong>Vitals:</strong> ${c.vitals || 'Normal'}</p>
+                            <p class="text-xs text-slate-700 font-medium bg-slate-50 p-2 rounded-lg border"><strong>Treatment Notes:</strong> ${c.treatment_notes}</p>
                         </div>
-                        <p class="text-xs text-slate-600 mb-1"><strong>Symptoms:</strong> ${c.symptoms}</p>
-                        <p class="text-xs text-slate-600 mb-1"><strong>Vitals:</strong> ${c.vitals || 'Normal'}</p>
-                        <p class="text-xs text-slate-700 font-medium bg-slate-50 p-2 rounded-lg border"><strong>Treatment Notes:</strong> ${c.treatment_notes}</p>
-                    </div>
-                `).join('');
+                    `).join('');
+                }
             }
 
-            // Render Vaccinations
+            // Render Vaccinations for Table view (Dashboard)
+            const vacTbody = document.getElementById('ehr-vaccinations-tbody');
+            if (vacTbody) {
+                if (!data.vaccinations || data.vaccinations.length === 0) {
+                    vacTbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-500 italic">No vaccination history recorded.</td></tr>';
+                } else {
+                    vacTbody.innerHTML = data.vaccinations.map(v => `
+                        <tr class="hover:bg-amber-50/60 border-b border-slate-100">
+                            <td class="p-2.5 font-bold text-slate-900">${v.vaccine_name}</td>
+                            <td class="p-2.5 font-mono text-slate-600">${v.batch_number || '--'}</td>
+                            <td class="p-2.5 text-slate-600">${v.date_administered}</td>
+                            <td class="p-2.5 font-bold ${v.status === 'Overdue' ? 'text-rose-600' : 'text-teal-700'}">${v.next_due_date}</td>
+                            <td class="p-2.5"><span class="badge-tag ${v.status === 'Overdue' ? 'bg-rose-100 text-rose-800' : 'bg-teal-100 text-teal-800'}">${v.status}</span></td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            // Render Vaccinations for Card view (Index)
             const vacList = document.getElementById('ehr-vaccinations-list');
-            if (data.vaccinations.length === 0) {
-                vacList.innerHTML = '<p class="text-xs text-slate-500 italic p-3 bg-slate-50 rounded-xl">No vaccination history recorded.</p>';
-            } else {
-                vacList.innerHTML = data.vaccinations.map(v => `
-                    <div class="border-l-4 ${v.status === 'Overdue' ? 'border-rose-500 bg-rose-50/60' : 'border-teal-500 bg-teal-50/40'} pl-3 py-2 text-xs rounded-r-lg">
-                        <div class="flex justify-between font-bold text-slate-800">
-                            <span>${v.vaccine_name}</span>
-                            <span class="badge-tag ${v.status === 'Overdue' ? 'bg-rose-100 text-rose-800' : 'bg-teal-100 text-teal-800'}">${v.status}</span>
+            if (vacList) {
+                if (!data.vaccinations || data.vaccinations.length === 0) {
+                    vacList.innerHTML = '<p class="text-xs text-slate-500 italic p-3 bg-slate-50 rounded-xl">No vaccination history recorded.</p>';
+                } else {
+                    vacList.innerHTML = data.vaccinations.map(v => `
+                        <div class="border-l-4 ${v.status === 'Overdue' ? 'border-rose-500 bg-rose-50/60' : 'border-teal-500 bg-teal-50/40'} pl-3 py-2 text-xs rounded-r-lg">
+                            <div class="flex justify-between font-bold text-slate-800">
+                                <span>${v.vaccine_name}</span>
+                                <span class="badge-tag ${v.status === 'Overdue' ? 'bg-rose-100 text-rose-800' : 'bg-teal-100 text-teal-800'}">${v.status}</span>
+                            </div>
+                            <div class="text-slate-500 text-[11px]">Administered: ${v.date_administered} • Batch: ${v.batch_number}</div>
+                            <div class="font-bold text-slate-800 mt-1">Next Booster Due: <span class="${v.status === 'Overdue' ? 'text-rose-600 font-extrabold' : 'text-teal-700 font-extrabold'}">${v.next_due_date}</span></div>
                         </div>
-                        <div class="text-slate-500 text-[11px]">Administered: ${v.date_administered} • Batch: ${v.batch_number}</div>
-                        <div class="font-bold text-slate-800 mt-1">Next Booster Due: <span class="${v.status === 'Overdue' ? 'text-rose-600 font-extrabold' : 'text-teal-700 font-extrabold'}">${v.next_due_date}</span></div>
-                    </div>
-                `).join('');
+                    `).join('');
+                }
             }
 
             // Render Prescriptions
             const rxList = document.getElementById('ehr-prescriptions-list');
-            if (data.prescriptions.length === 0) {
-                rxList.innerHTML = '<p class="text-xs text-slate-500 italic p-3 bg-slate-50 rounded-xl">No prescriptions issued.</p>';
-            } else {
-                rxList.innerHTML = data.prescriptions.map(rx => `
-                    <div class="border-2 border-indigo-200 rounded-xl p-3 bg-indigo-50/40 flex justify-between items-center text-xs">
-                        <div>
-                            <div class="font-extrabold text-indigo-900">${rx.medication_details}</div>
-                            <div class="text-slate-600 font-medium">Dosage: ${rx.dosage} • ${rx.instructions}</div>
-                            <div class="text-slate-400 text-[10px] font-mono">Issued: ${rx.issued_date} by Dr. ${rx.vet_name}</div>
+            if (rxList) {
+                if (!data.prescriptions || data.prescriptions.length === 0) {
+                    rxList.innerHTML = '<p class="text-xs text-slate-500 italic p-3 bg-slate-50 rounded-xl">No prescriptions issued.</p>';
+                } else {
+                    rxList.innerHTML = data.prescriptions.map(rx => `
+                        <div class="border-2 border-indigo-200 rounded-xl p-3 bg-indigo-50/40 flex justify-between items-center text-xs">
+                            <div>
+                                <div class="font-extrabold text-indigo-900">${rx.medication_details}</div>
+                                <div class="text-slate-600 font-medium">Dosage: ${rx.dosage} • ${rx.instructions}</div>
+                                <div class="text-slate-400 text-[10px] font-mono">Issued: ${rx.issued_date} by Dr. ${rx.vet_name}</div>
+                            </div>
+                            <button onclick="PetEhrModule.printPrescription(${rx.prescription_id})" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-sm">
+                                <i class="fas fa-print mr-1"></i>Download Rx
+                            </button>
                         </div>
-                        <button onclick="PetEhrModule.printPrescription(${rx.prescription_id})" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-sm">
-                            <i class="fas fa-print mr-1"></i>Download Rx
-                        </button>
-                    </div>
-                `).join('');
+                    `).join('');
+                }
             }
 
             modal.classList.remove('hidden');
@@ -337,13 +370,13 @@ const PetEhrModule = {
     },
 
     async submitVaccination() {
-        const petId = document.getElementById('vac-pet-id').value;
-        const vacName = document.getElementById('vac-name').value;
-        const batchNo = document.getElementById('vac-batch').value;
-        const dateAdmin = document.getElementById('vac-date-admin').value;
-        const remarks = document.getElementById('vac-remarks').value;
+        const petId = this.selectedPetId || document.getElementById('vac-pet-id')?.value;
+        const vacName = document.getElementById('vac-name')?.value?.trim();
+        const batchNo = document.getElementById('vac-batch')?.value?.trim();
+        const dateAdmin = document.getElementById('vac-date')?.value || document.getElementById('vac-date-admin')?.value;
+        const remarks = document.getElementById('vac-remarks')?.value || 'Administered at clinic';
 
-        if (!vacName || !batchNo || !dateAdmin) {
+        if (!petId || !vacName || !batchNo || !dateAdmin) {
             App.showToast('Please fill all mandatory vaccine fields.', 'danger');
             return;
         }
@@ -367,10 +400,28 @@ const PetEhrModule = {
 
             App.showToast(`Vaccination recorded! Next booster automatically calculated: ${data.next_due_date}`, 'success');
             this.closeAddVaccineModal();
+            this.closeAdministerVaccineModal();
             this.openEHRModal(petId);
         } catch (err) {
             App.showToast(`Error: ${err.message}`, 'danger');
         }
+    },
+
+    openAdministerVaccineModal() {
+        const modal = document.getElementById('administer-vaccine-modal') || document.getElementById('add-vaccine-modal');
+        if (!modal) return;
+        const dateInput = document.getElementById('vac-date') || document.getElementById('vac-date-admin');
+        if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+        modal.classList.remove('hidden');
+    },
+
+    closeAdministerVaccineModal() {
+        const modal = document.getElementById('administer-vaccine-modal') || document.getElementById('add-vaccine-modal');
+        if (modal) modal.classList.add('hidden');
+    },
+
+    async submitVaccine() {
+        await this.submitVaccination();
     },
 
     async printPrescription(prescriptionId) {

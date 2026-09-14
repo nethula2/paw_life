@@ -177,7 +177,7 @@ public class PetEhrHandler implements HttpHandler {
             return;
         }
 
-        long petId = ((Number) petIdObj).longValue();
+        long petId = HttpUtils.toLong(petIdObj, 0L);
         long consultId = Database.executeInsert(
             "INSERT INTO consultations (appointment_id, pet_id, vet_id, symptoms, vitals, diagnosis, treatment_notes) " +
             "VALUES (1, ?, 2, ?, ?, ?, ?)",
@@ -204,7 +204,7 @@ public class PetEhrHandler implements HttpHandler {
 
     private void handleCreateVaccination(HttpExchange exchange) throws Exception {
         Map<String, Object> body = HttpUtils.readJsonBody(exchange);
-        long petId = ((Number) body.get("pet_id")).longValue();
+        long petId = HttpUtils.toLong(body.get("pet_id"), 0L);
         String vaccineName = (String) body.get("vaccine_name");
         String batchNumber = (String) body.get("batch_number");
         String adminDate = (String) body.get("date_administered");

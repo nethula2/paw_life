@@ -60,11 +60,11 @@ public class InventoryHandler implements HttpHandler {
         String name = (String) body.get("supply_name");
         String category = (String) body.getOrDefault("category", "Surgical Supply");
         String batchNo = (String) body.get("batch_number");
-        int qty = ((Number) body.getOrDefault("quantity", 0)).intValue();
-        int minThreshold = ((Number) body.getOrDefault("min_threshold", 10)).intValue();
+        int qty = HttpUtils.toInt(body.get("quantity"), 0);
+        int minThreshold = HttpUtils.toInt(body.get("min_threshold"), 10);
         String expiryDate = (String) body.get("expiry_date");
-        double unitPrice = ((Number) body.getOrDefault("unit_price", 500.0)).doubleValue();
-        long supplierId = ((Number) body.getOrDefault("supplier_id", 3)).longValue();
+        double unitPrice = HttpUtils.toDouble(body.get("unit_price"), 500.0);
+        long supplierId = HttpUtils.toLong(body.get("supplier_id"), 3L);
 
         if (name == null || batchNo == null || expiryDate == null) {
             Map<String, Object> res = new HashMap<>();
@@ -103,8 +103,8 @@ public class InventoryHandler implements HttpHandler {
 
     private void handleDeductStock(HttpExchange exchange) throws Exception {
         Map<String, Object> body = HttpUtils.readJsonBody(exchange);
-        long supplyId = ((Number) body.get("supply_id")).longValue();
-        int usedQty = ((Number) body.get("quantity_used")).intValue();
+        long supplyId = HttpUtils.toLong(body.get("supply_id"), 0L);
+        int usedQty = HttpUtils.toInt(body.get("quantity_used"), 1);
 
         Map<String, Object> item = Database.getFirst("SELECT * FROM medical_supplies WHERE supply_id = ?", supplyId);
         if (item == null) {
@@ -115,11 +115,11 @@ public class InventoryHandler implements HttpHandler {
             return;
         }
 
-        int current = ((Number) item.get("quantity")).intValue();
+        int current = HttpUtils.toInt(item.get("quantity"), 0);
         int remaining = Math.max(0, current - usedQty);
         Database.executeUpdate("UPDATE medical_supplies SET quantity = ? WHERE supply_id = ?", remaining, supplyId);
 
-        int minThreshold = ((Number) item.get("min_threshold")).intValue();
+        int minThreshold = HttpUtils.toInt(item.get("min_threshold"), 10);
         boolean isLow = remaining <= minThreshold;
         if (isLow) {
             Database.addNotification(5,
@@ -155,8 +155,8 @@ public class InventoryHandler implements HttpHandler {
             return;
         }
 
-        long supplyId = ((Number) idObj).longValue();
-        int qty = ((Number) qtyObj).intValue();
+        long supplyId = HttpUtils.toLong(idObj, 0L);
+        int qty = HttpUtils.toInt(qtyObj, 0);
         if (qty <= 0) {
             Map<String, Object> res = new HashMap<>();
             res.put("success", false);
@@ -174,7 +174,7 @@ public class InventoryHandler implements HttpHandler {
             return;
         }
 
-        int currentStock = ((Number) item.get("quantity")).intValue();
+        int currentStock = HttpUtils.toInt(item.get("quantity"), 0);
         if (currentStock < qty) {
             Map<String, Object> res = new HashMap<>();
             res.put("success", false);
@@ -195,12 +195,12 @@ public class InventoryHandler implements HttpHandler {
         }
 
         int remaining = currentStock - qty;
-        double unitPrice = ((Number) item.get("unit_price")).doubleValue();
+        double unitPrice = HttpUtils.toDouble(item.get("unit_price"), 0.0);
         double totalAmount = unitPrice * qty;
 
         Database.executeUpdate("UPDATE medical_supplies SET quantity = ? WHERE supply_id = ?", remaining, supplyId);
 
-        int minThreshold = ((Number) item.get("min_threshold")).intValue();
+        int minThreshold = HttpUtils.toInt(item.get("min_threshold"), 10);
         boolean isLow = remaining <= minThreshold;
         if (isLow) {
             Database.addNotification(5,

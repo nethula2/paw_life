@@ -126,7 +126,7 @@ public class OperationsHandler implements HttpHandler {
 
     private void handleCreateShift(HttpExchange exchange) throws Exception {
         Map<String, Object> body = HttpUtils.readJsonBody(exchange);
-        long userId = ((Number) body.get("user_id")).longValue();
+        long userId = HttpUtils.toLong(body.get("user_id"), 0L);
         String shiftDate = (String) body.get("shift_date");
         String shiftType = (String) body.getOrDefault("shift_type", "Morning");
         String startTime = (String) body.getOrDefault("start_time", "08:00:00");

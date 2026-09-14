@@ -30,9 +30,6 @@ const CustomerPortal = {
                                     <i class="fas fa-paw text-[#FF5A27]"></i>
                                     <span>${user.first_name}'s Pets</span>
                                 </button>
-                                <button onclick="CustomerPortal.logout()" title="Sign Out" class="w-8 h-8 rounded-full border-2 border-slate-900 bg-white hover:bg-rose-50 text-rose-600 flex items-center justify-center text-xs transition cursor-pointer">
-                                    <i class="fas fa-sign-out-alt"></i>
-                                </button>
                             </div>
                         `;
                     }
@@ -331,8 +328,10 @@ const CustomerPortal = {
                                         <span class="text-sm font-black text-slate-900 font-chunky">${a.pet_name} (${a.service_type})</span>
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${
                                             a.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
+                                            a.status === 'Confirmed' ? 'bg-blue-100 text-blue-800' :
+                                            a.status === 'Pending' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
                                             a.status === 'Cancelled' ? 'bg-rose-100 text-rose-800' :
-                                            'bg-blue-100 text-blue-800'
+                                            'bg-slate-100 text-slate-800'
                                         }">${a.status}</span>
                                     </div>
                                     <div class="text-xs text-slate-600 mt-1 flex items-center space-x-3">

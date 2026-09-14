@@ -229,7 +229,7 @@ public class CustomerHandler implements HttpHandler {
 
     private void handleAddPet(HttpExchange exchange) throws Exception {
         Map<String, Object> body = HttpUtils.readJsonBody(exchange);
-        long ownerId = ((Number) body.getOrDefault("owner_id", 1)).longValue();
+        long ownerId = HttpUtils.toLong(body.get("owner_id"), 1L);
         String petName = (String) body.get("pet_name");
         String species = (String) body.getOrDefault("species", "Dog");
         String breed = (String) body.getOrDefault("breed", "Mixed Breed");
@@ -261,7 +261,7 @@ public class CustomerHandler implements HttpHandler {
 
     private void handleCancelAppointment(HttpExchange exchange) throws Exception {
         Map<String, Object> body = HttpUtils.readJsonBody(exchange);
-        long apptId = ((Number) body.get("appointment_id")).longValue();
+        long apptId = HttpUtils.toLong(body.get("appointment_id"), 0L);
 
         Database.executeUpdate(
             "UPDATE appointments SET status = 'Cancelled' WHERE appointment_id = ?",

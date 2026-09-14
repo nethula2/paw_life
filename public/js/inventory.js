@@ -133,11 +133,11 @@ const InventoryModule = {
                     supply_name: supplyName,
                     category,
                     batch_number: batchNum,
-                    quantity: qty,
-                    min_threshold: minThresh,
+                    quantity: parseInt(qty, 10) || 0,
+                    min_threshold: parseInt(minThresh, 10) || 10,
                     expiry_date: expiryDate,
-                    unit_price: price,
-                    supplier_id: supplierId
+                    unit_price: parseFloat(price) || 0.0,
+                    supplier_id: parseInt(supplierId, 10) || 3
                 })
             });
 

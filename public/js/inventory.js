@@ -29,6 +29,11 @@ const InventoryModule = {
             const data = await res.json();
             if (!data.success) return;
 
+            if (!data.supplies || data.supplies.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-xs text-slate-500 italic font-medium">No inventory items match your search criteria.</td></tr>';
+                return;
+            }
+
             tbody.innerHTML = data.supplies.map(item => `
                 <tr class="hover:bg-slate-50 text-sm ${item.is_low_stock ? 'bg-rose-50/40' : ''}">
                     <td class="p-3 font-bold text-slate-800">${item.supply_name}</td>
@@ -155,7 +160,9 @@ const InventoryModule = {
 
             this.closeAddBatchModal();
             await this.loadSupplies();
-            App.checkNotifications();
+            if (typeof App !== 'undefined' && typeof App.checkNotifications === 'function') {
+                App.checkNotifications();
+            }
         } catch (err) {
             App.showToast(`Error: ${err.message}`, 'danger');
         }
@@ -207,7 +214,9 @@ const InventoryModule = {
 
             this.closeDeductModal();
             await this.loadSupplies();
-            App.checkNotifications();
+            if (typeof App !== 'undefined' && typeof App.checkNotifications === 'function') {
+                App.checkNotifications();
+            }
         } catch (err) {
             App.showToast(`Error: ${err.message}`, 'danger');
         }

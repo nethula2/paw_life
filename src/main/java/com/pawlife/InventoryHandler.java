@@ -44,11 +44,58 @@ public class InventoryHandler implements HttpHandler {
     }
 
     private void handleGetAllSupplies(HttpExchange exchange) throws Exception {
-        List<Map<String, Object>> supplies = Database.query(
+        Map<String, String> q = HttpUtils.parseQueryParams(exchange);
+        String search = q.get("search");
+        String category = q.get("category");
+        boolean lowStockOnly = "true".equalsIgnoreCase(q.get("low_stock_only"));
+
+        StringBuilder sql = new StringBuilder(
             "SELECT s.*, sup.supplier_name FROM medical_supplies s " +
             "LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id " +
-            "ORDER BY s.supply_name ASC"
+            "WHERE 1=1 "
         );
+        List<Object> params = new ArrayList<>();
+
+        if (search != null && !search.trim().isEmpty()) {
+            sql.append("AND (LOWER(s.supply_name) LIKE ? OR LOWER(s.batch_number) LIKE ? OR LOWER(s.category) LIKE ?) ");
+            String term = "%" + search.trim().toLowerCase() + "%";
+            params.add(term);
+            params.add(term);
+            params.add(term);
+        }
+
+        if (category != null && !category.trim().isEmpty()) {
+            sql.append("AND s.category = ? ");
+            params.add(category.trim());
+        }
+
+        if (lowStockOnly) {
+            sql.append("AND s.quantity <= s.min_threshold ");
+        }
+
+        sql.append("ORDER BY s.supply_name ASC");
+
+        List<Map<String, Object>> supplies = Database.query(sql.toString(), params.toArray());
+
+        LocalDate today = LocalDate.now();
+        for (Map<String, Object> item : supplies) {
+            int qty = HttpUtils.toInt(item.get("quantity"), 0);
+            int minThresh = HttpUtils.toInt(item.get("min_threshold"), 10);
+            item.put("is_low_stock", qty <= minThresh);
+
+            Object expObj = item.get("expiry_date");
+            if (expObj != null) {
+                try {
+                    LocalDate exp = LocalDate.parse(expObj.toString());
+                    item.put("is_expired", exp.isBefore(today));
+                } catch (Exception ignored) {
+                    item.put("is_expired", false);
+                }
+            } else {
+                item.put("is_expired", false);
+            }
+        }
+
         Map<String, Object> res = new HashMap<>();
         res.put("success", true);
         res.put("supplies", supplies);

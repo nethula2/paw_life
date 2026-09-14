@@ -322,78 +322,133 @@ const AppointmentsModule = {
             const data = await res.json();
             if (!data.success) return;
 
-            tbody.innerHTML = data.appointments.map(a => `
-                <tr class="hover:bg-amber-50/50 text-xs border-b border-slate-200">
-                    <td class="p-3 font-mono font-bold text-slate-700">#APP-${a.appointment_id}</td>
-                    <td class="p-3">
-                        <div class="font-extrabold text-slate-900">${a.pet_name}</div>
-                        <div class="text-[11px] text-slate-500">${a.species} • Owner: ${a.owner_name}</div>
-                    </td>
-                    <td class="p-3">
-                        <span class="badge-tag ${
-                            a.service_type === 'Grooming' ? 'bg-purple-100 text-purple-800' :
-                            a.service_type === 'Vaccination' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
-                        }">${a.service_type}</span>
-                    </td>
-                    <td class="p-3 font-medium text-slate-800">
-                        <div>${a.booking_date}</div>
-                        <div class="text-[11px] text-slate-500 font-mono">${a.time_slot}</div>
-                    </td>
-                    <td class="p-3 text-[11px] text-slate-600">${a.assigned_staff_name || 'Clinic Team'}</td>
-                    <td class="p-3">
-                        <span class="badge-tag ${
-                            a.status === 'Pending' ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold' :
-                            a.status === 'Confirmed' ? 'bg-blue-100 text-blue-900 border border-blue-300 font-bold' :
-                            a.status === 'In Progress' ? 'bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold' :
-                            a.status === 'Completed' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold' :
-                            'bg-rose-100 text-rose-900 border border-rose-300 font-bold'
-                        }">
-                            <i class="fas ${
-                                a.status === 'Pending' ? 'fa-clock text-amber-600' :
-                                a.status === 'Confirmed' ? 'fa-check text-blue-600' :
-                                a.status === 'In Progress' ? 'fa-spinner fa-spin text-indigo-600' :
-                                a.status === 'Completed' ? 'fa-check-double text-emerald-600' :
-                                'fa-times text-rose-600'
-                            } mr-1"></i>${a.status}
-                        </span>
-                    </td>
-                    <td class="p-3 text-right space-x-1 whitespace-nowrap">
-                        ${a.status === 'Pending' ? `
-                            <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Confirmed')"
-                                title="Confirm this appointment request"
-                                class="px-3 py-1.5 text-[11px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-black shadow-sm transition cursor-pointer">
-                                <i class="fas fa-check mr-1"></i>Confirm
-                            </button>
-                            <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Cancelled')"
-                                title="Cancel this appointment"
-                                class="px-2.5 py-1.5 text-[11px] border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg font-bold transition cursor-pointer">
-                                <i class="fas fa-times mr-1"></i>Cancel
-                            </button>
-                        ` : a.status === 'Confirmed' ? `
-                            <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Completed')"
-                                title="Mark appointment as completed"
-                                class="px-3 py-1.5 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black shadow-sm transition cursor-pointer">
-                                <i class="fas fa-check-double mr-1"></i>Complete
-                            </button>
-                            <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Cancelled')"
-                                title="Cancel this appointment"
-                                class="px-2.5 py-1.5 text-[11px] border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg font-bold transition cursor-pointer">
-                                <i class="fas fa-times mr-1"></i>Cancel
-                            </button>
-                        ` : a.status === 'Completed' ? `
-                            <span class="inline-flex items-center text-xs font-black text-emerald-700 font-mono">
-                                <i class="fas fa-check-circle mr-1 text-emerald-600"></i>Finished
-                            </span>
-                        ` : `
-                            <span class="inline-flex items-center text-xs text-slate-400 font-mono">
-                                <i class="fas fa-ban mr-1"></i>Cancelled
-                            </span>
-                        `}
-                    </td>
-                </tr>
-            `).join('');
+            this.allAppointments = data.appointments || [];
+            this.filterAppointments();
         } catch (err) {
             console.error('Error loading appointments:', err);
+        }
+    },
+
+    filterAppointments() {
+        const tbody = document.getElementById('appointments-table-tbody');
+        if (!tbody) return;
+
+        if (!this.allAppointments || this.allAppointments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-xs text-slate-500 italic font-medium">No appointments scheduled on record.</td></tr>';
+            return;
+        }
+
+        const search = (document.getElementById('appointment-search-input')?.value || '').trim().toLowerCase();
+        const status = document.getElementById('appointment-status-filter')?.value || '';
+        const service = document.getElementById('appointment-service-filter')?.value || '';
+
+        const filtered = this.allAppointments.filter(a => {
+            const petName = (a.pet_name || '').toLowerCase();
+            const ownerName = (a.owner_name || '').toLowerCase();
+            const serviceType = (a.service_type || '').toLowerCase();
+            const staffName = (a.assigned_staff_name || '').toLowerCase();
+            const apptId = String(a.appointment_id);
+
+            const matchSearch = !search ||
+                petName.includes(search) ||
+                ownerName.includes(search) ||
+                serviceType.includes(search) ||
+                staffName.includes(search) ||
+                apptId.includes(search.replace('#app-', '').replace('#', ''));
+
+            const matchStatus = !status || a.status === status;
+            const matchService = !service || a.service_type === service;
+
+            return matchSearch && matchStatus && matchService;
+        });
+
+        this.renderAppointmentsTable(filtered);
+    },
+
+    renderAppointmentsTable(appointments) {
+        const tbody = document.getElementById('appointments-table-tbody');
+        if (!tbody) return;
+
+        if (appointments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-xs text-slate-500 italic font-medium">No appointments match your search criteria.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = appointments.map(a => `
+            <tr class="hover:bg-amber-50/50 text-xs border-b border-slate-200">
+                <td class="p-3 font-mono font-bold text-slate-700">#APP-${a.appointment_id}</td>
+                <td class="p-3">
+                    <div class="font-extrabold text-slate-900">${a.pet_name}</div>
+                    <div class="text-[11px] text-slate-500">${a.species || ''} • Owner: ${a.owner_name || 'Valued Client'}</div>
+                </td>
+                <td class="p-3">
+                    <span class="badge-tag ${
+                        a.service_type === 'Grooming' ? 'bg-purple-100 text-purple-800' :
+                        a.service_type === 'Vaccination' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                    }">${a.service_type}</span>
+                </td>
+                <td class="p-3 font-medium text-slate-800">
+                    <div>${a.booking_date}</div>
+                    <div class="text-[11px] text-slate-500 font-mono">${a.time_slot}</div>
+                </td>
+                <td class="p-3 text-[11px] text-slate-600">${a.assigned_staff_name || 'Clinic Team'}</td>
+                <td class="p-3">
+                    <span class="badge-tag ${
+                        a.status === 'Pending' ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold' :
+                        a.status === 'Confirmed' ? 'bg-blue-100 text-blue-900 border border-blue-300 font-bold' :
+                        a.status === 'In Progress' ? 'bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold' :
+                        a.status === 'Completed' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold' :
+                        'bg-rose-100 text-rose-900 border border-rose-300 font-bold'
+                    }">
+                        <i class="fas ${
+                            a.status === 'Pending' ? 'fa-clock text-amber-600' :
+                            a.status === 'Confirmed' ? 'fa-check text-blue-600' :
+                            a.status === 'In Progress' ? 'fa-spinner fa-spin text-indigo-600' :
+                            a.status === 'Completed' ? 'fa-check-double text-emerald-600' :
+                            'fa-times text-rose-600'
+                        } mr-1"></i>${a.status}
+                    </span>
+                </td>
+                <td class="p-3 text-right space-x-1 whitespace-nowrap">
+                    ${a.status === 'Pending' ? `
+                        <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Confirmed')"
+                            title="Confirm this appointment request"
+                            class="px-3 py-1.5 text-[11px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-black shadow-sm transition cursor-pointer">
+                            <i class="fas fa-check mr-1"></i>Confirm
+                        </button>
+                        <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Cancelled')"
+                            title="Cancel this appointment"
+                            class="px-2.5 py-1.5 text-[11px] border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg font-bold transition cursor-pointer">
+                            <i class="fas fa-times mr-1"></i>Cancel
+                        </button>
+                    ` : a.status === 'Confirmed' ? `
+                        <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Completed')"
+                            title="Mark appointment as completed"
+                            class="px-3 py-1.5 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black shadow-sm transition cursor-pointer">
+                            <i class="fas fa-check-double mr-1"></i>Complete
+                        </button>
+                        <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Cancelled')"
+                            title="Cancel this appointment"
+                            class="px-2.5 py-1.5 text-[11px] border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg font-bold transition cursor-pointer">
+                            <i class="fas fa-times mr-1"></i>Cancel
+                        </button>
+                    ` : a.status === 'Completed' ? `
+                        <span class="inline-flex items-center text-xs font-black text-emerald-700 font-mono">
+                            <i class="fas fa-check-circle mr-1 text-emerald-600"></i>Finished
+                        </span>
+                    ` : `
+                        <span class="inline-flex items-center text-xs text-slate-400 font-mono">
+                            <i class="fas fa-ban mr-1"></i>Cancelled
+                        </span>
+                    `}
+                </td>
+            </tr>
+        `).join('');
+
+        // Also sync to dashboard overview if on dashboard view
+        const ovTbody = document.getElementById('ov-appointments-tbody');
+        if (ovTbody) {
+            ovTbody.innerHTML = tbody.innerHTML;
         }
     },
 

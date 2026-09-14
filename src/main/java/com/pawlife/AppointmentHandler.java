@@ -246,14 +246,41 @@ public class AppointmentHandler implements HttpHandler {
     }
 
     private void handleGetAllAppointments(HttpExchange exchange) throws Exception {
-        List<Map<String, Object>> list = Database.query(
-            "SELECT a.*, p.pet_name, p.breed, u.first_name || ' ' || u.last_name AS owner_name " +
+        Map<String, String> q = HttpUtils.parseQueryParams(exchange);
+        String search = q.get("search");
+        String status = q.get("status");
+
+        StringBuilder sql = new StringBuilder(
+            "SELECT a.*, p.pet_name, p.breed, p.species, " +
+            "u.first_name || ' ' || u.last_name AS owner_name, " +
+            "st.first_name || ' ' || st.last_name AS assigned_staff_name " +
             "FROM appointments a " +
             "LEFT JOIN pets p ON a.pet_id = p.pet_id " +
             "LEFT JOIN pet_owners o ON a.owner_id = o.owner_id " +
             "LEFT JOIN users u ON o.user_id = u.user_id " +
-            "ORDER BY a.booking_date DESC, a.time_slot ASC LIMIT 50"
+            "LEFT JOIN users st ON a.assigned_staff_id = st.user_id " +
+            "WHERE 1=1 "
         );
+        List<Object> params = new ArrayList<>();
+
+        if (search != null && !search.trim().isEmpty()) {
+            sql.append("AND (LOWER(p.pet_name) LIKE ? OR LOWER(u.first_name) LIKE ? OR LOWER(u.last_name) LIKE ? OR LOWER(a.service_type) LIKE ? OR CAST(a.appointment_id AS CHAR) LIKE ?) ");
+            String term = "%" + search.trim().toLowerCase() + "%";
+            params.add(term);
+            params.add(term);
+            params.add(term);
+            params.add(term);
+            params.add(term);
+        }
+
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("AND a.status = ? ");
+            params.add(status.trim());
+        }
+
+        sql.append("ORDER BY a.booking_date DESC, a.time_slot ASC LIMIT 100");
+
+        List<Map<String, Object>> list = Database.query(sql.toString(), params.toArray());
         Map<String, Object> res = new HashMap<>();
         res.put("success", true);
         res.put("appointments", list);

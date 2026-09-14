@@ -520,6 +520,27 @@
                         </button>
                     </div>
 
+                    <!-- Search & Filter Controls -->
+                    <div class="chunky-panel p-4 flex flex-wrap gap-3 items-center">
+                        <div class="flex-1 min-w-[220px] relative">
+                            <input type="text" id="appointment-search-input" oninput="AppointmentsModule.filterAppointments()" placeholder="Search by Pet Name, Owner, Service, or #APP ID..." class="w-full text-xs p-3 pl-9 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold focus:bg-white">
+                            <i class="fas fa-search absolute left-3 top-3.5 text-slate-400"></i>
+                        </div>
+                        <select id="appointment-status-filter" onchange="AppointmentsModule.filterAppointments()" class="text-xs p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                            <option value="">All Statuses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <select id="appointment-service-filter" onchange="AppointmentsModule.filterAppointments()" class="text-xs p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                            <option value="">All Services</option>
+                            <option value="Veterinary Care">Veterinary Care</option>
+                            <option value="Grooming">Grooming & Spa</option>
+                            <option value="Vaccination">Vaccination</option>
+                        </select>
+                    </div>
+
                     <div class="chunky-panel p-6">
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-xs border-collapse">

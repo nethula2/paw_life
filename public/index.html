@@ -1056,16 +1056,17 @@
     <!-- Modal: Booking Success Confirmation -->
     <div id="booking-success-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl p-8 max-w-md w-full border-4 border-slate-900 shadow-[8px_8px_0px_#000] text-center">
-            <div class="w-16 h-16 bg-emerald-100 text-emerald-700 border-2 border-slate-900 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
-                ✓
+            <div class="w-16 h-16 bg-amber-100 text-amber-700 border-2 border-slate-900 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                ⏳
             </div>
-            <h3 class="text-2xl font-black text-slate-900 font-chunky mb-1">Appointment Confirmed!</h3>
-            <p class="text-xs text-slate-600 font-medium mb-4">Your appointment slot has been locked in our schedule.</p>
+            <h3 class="text-2xl font-black text-slate-900 font-chunky mb-1">Appointment Booked!</h3>
+            <p class="text-xs text-slate-600 font-medium mb-4">Your appointment slot has been reserved and is pending clinic confirmation.</p>
             
             <div class="bg-amber-50 p-4 rounded-2xl border-2 border-slate-900 text-xs text-left space-y-1.5 mb-6">
                 <div class="flex justify-between"><span class="text-slate-500 font-bold">Booking Reference:</span><span id="success-appt-id" class="font-mono font-black text-teal-800">--</span></div>
                 <div class="flex justify-between"><span class="text-slate-500 font-bold">Service Category:</span><span id="success-appt-service" class="font-bold text-slate-800">--</span></div>
                 <div class="flex justify-between"><span class="text-slate-500 font-bold">Date & Time Slot:</span><span id="success-appt-datetime" class="font-bold text-slate-800">--</span></div>
+                <div class="flex justify-between"><span class="text-slate-500 font-bold">Current Status:</span><span class="badge-tag bg-amber-100 text-amber-900 border border-amber-300 font-black"><i class="fas fa-clock mr-1"></i>Pending Confirmation</span></div>
             </div>
 
             <button onclick="AppointmentsModule.closeBookingSuccessModal()" class="btn-chunky-brown w-full py-3 text-xs uppercase tracking-wider">

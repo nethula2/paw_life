@@ -264,7 +264,7 @@ const AppointmentsModule = {
 
             // Step 8: Success confirmation summary
             const petDisplayName = data.pet_name || (this.customerMode === 'new' ? document.getElementById('new-pet-name')?.value : 'Your pet');
-            App.showToast(`Booking Confirmed! Appointment #${data.appointment_id} scheduled for ${petDisplayName} on ${bookingDate} at ${this.selectedSlot}.`, 'success');
+            App.showToast(`Booking Submitted! Appointment #${data.appointment_id} for ${petDisplayName} on ${bookingDate} at ${this.selectedSlot} (Pending Admin Confirmation).`, 'success');
             
             // Show confirmation popup
             this.showBookingSuccessModal(data.appointment_id, serviceType, bookingDate, this.selectedSlot, petDisplayName);
@@ -342,22 +342,53 @@ const AppointmentsModule = {
                     <td class="p-3 text-[11px] text-slate-600">${a.assigned_staff_name || 'Clinic Team'}</td>
                     <td class="p-3">
                         <span class="badge-tag ${
-                            a.status === 'Confirmed' ? 'status-confirmed' :
-                            a.status === 'In Progress' ? 'status-inprogress' :
-                            a.status === 'Completed' ? 'status-completed' : 'status-booked'
-                        }">${a.status}</span>
+                            a.status === 'Pending' ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold' :
+                            a.status === 'Confirmed' ? 'bg-blue-100 text-blue-900 border border-blue-300 font-bold' :
+                            a.status === 'In Progress' ? 'bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold' :
+                            a.status === 'Completed' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold' :
+                            'bg-rose-100 text-rose-900 border border-rose-300 font-bold'
+                        }">
+                            <i class="fas ${
+                                a.status === 'Pending' ? 'fa-clock text-amber-600' :
+                                a.status === 'Confirmed' ? 'fa-check text-blue-600' :
+                                a.status === 'In Progress' ? 'fa-spinner fa-spin text-indigo-600' :
+                                a.status === 'Completed' ? 'fa-check-double text-emerald-600' :
+                                'fa-times text-rose-600'
+                            } mr-1"></i>${a.status}
+                        </span>
                     </td>
-                    <td class="p-3 text-right space-x-1">
-                        ${a.status !== 'Completed' && a.status !== 'Cancelled' ? `
-                            <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Completed')"
-                                class="px-2.5 py-1 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-sm">
-                                Complete
+                    <td class="p-3 text-right space-x-1 whitespace-nowrap">
+                        ${a.status === 'Pending' ? `
+                            <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Confirmed')"
+                                title="Confirm this appointment request"
+                                class="px-3 py-1.5 text-[11px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-black shadow-sm transition cursor-pointer">
+                                <i class="fas fa-check mr-1"></i>Confirm
                             </button>
                             <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Cancelled')"
-                                class="px-2.5 py-1 text-[11px] border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg font-bold">
-                                Cancel
+                                title="Cancel this appointment"
+                                class="px-2.5 py-1.5 text-[11px] border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg font-bold transition cursor-pointer">
+                                <i class="fas fa-times mr-1"></i>Cancel
                             </button>
-                        ` : `<span class="text-xs text-slate-400 font-mono">Archived</span>`}
+                        ` : a.status === 'Confirmed' ? `
+                            <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Completed')"
+                                title="Mark appointment as completed"
+                                class="px-3 py-1.5 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black shadow-sm transition cursor-pointer">
+                                <i class="fas fa-check-double mr-1"></i>Complete
+                            </button>
+                            <button onclick="AppointmentsModule.updateStatus(${a.appointment_id}, 'Cancelled')"
+                                title="Cancel this appointment"
+                                class="px-2.5 py-1.5 text-[11px] border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg font-bold transition cursor-pointer">
+                                <i class="fas fa-times mr-1"></i>Cancel
+                            </button>
+                        ` : a.status === 'Completed' ? `
+                            <span class="inline-flex items-center text-xs font-black text-emerald-700 font-mono">
+                                <i class="fas fa-check-circle mr-1 text-emerald-600"></i>Finished
+                            </span>
+                        ` : `
+                            <span class="inline-flex items-center text-xs text-slate-400 font-mono">
+                                <i class="fas fa-ban mr-1"></i>Cancelled
+                            </span>
+                        `}
                     </td>
                 </tr>
             `).join('');

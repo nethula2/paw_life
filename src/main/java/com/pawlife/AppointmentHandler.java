@@ -100,12 +100,12 @@ public class AppointmentHandler implements HttpHandler {
 
         long petId = 0;
         if (body.get("pet_id") != null && !isNewCustomer) {
-            petId = ((Number) body.get("pet_id")).longValue();
+            petId = HttpUtils.toLong(body.get("pet_id"), 0L);
         }
 
         long ownerId = 0;
         if (body.get("owner_id") != null) {
-            ownerId = ((Number) body.get("owner_id")).longValue();
+            ownerId = HttpUtils.toLong(body.get("owner_id"), 0L);
         }
 
         String serviceType = (String) body.getOrDefault("service_type", "Veterinary Care");
@@ -147,7 +147,7 @@ public class AppointmentHandler implements HttpHandler {
             );
             long userId;
             if (existingUser != null) {
-                userId = ((Number) existingUser.get("user_id")).longValue();
+                userId = HttpUtils.toLong(existingUser.get("user_id"), 0L);
             } else {
                 userId = Database.executeInsert(
                     "INSERT INTO users (first_name, last_name, email, password, phone_number, role, status) VALUES (?, ?, ?, ?, ?, 'Pet Owner', 'Active')",
@@ -161,7 +161,7 @@ public class AppointmentHandler implements HttpHandler {
                 userId
             );
             if (existingOwner != null) {
-                ownerId = ((Number) existingOwner.get("owner_id")).longValue();
+                ownerId = HttpUtils.toLong(existingOwner.get("owner_id"), 0L);
             } else {
                 ownerId = Database.executeInsert(
                     "INSERT INTO pet_owners (user_id, emergency_contact, preferred_contact_method) VALUES (?, ?, 'Phone')",
@@ -181,7 +181,7 @@ public class AppointmentHandler implements HttpHandler {
             Map<String, Object> petObj = Database.getFirst("SELECT owner_id, pet_name FROM pets WHERE pet_id = ?", petId);
             if (petObj != null) {
                 if (ownerId <= 0 && petObj.get("owner_id") != null) {
-                    ownerId = ((Number) petObj.get("owner_id")).longValue();
+                    ownerId = HttpUtils.toLong(petObj.get("owner_id"), 0L);
                 }
                 registeredPetName = (String) petObj.get("pet_name");
             }
@@ -205,24 +205,25 @@ public class AppointmentHandler implements HttpHandler {
 
         long apptId = Database.executeInsert(
             "INSERT INTO appointments (pet_id, owner_id, service_type, booking_date, time_slot, assigned_staff_id, status, notes) " +
-            "VALUES (?, ?, ?, ?, ?, 3, 'Confirmed', ?)",
+            "VALUES (?, ?, ?, ?, ?, 3, 'Pending', ?)",
             petId, ownerId, serviceType, bookingDate, timeSlot, notes
         );
 
         Database.logAudit(3, "Subasinghe R.A.G.I (Appointments)", "APPOINTMENT_BOOKING", "Appointment Scheduling",
-            "Reserved slot [" + timeSlot + "] on " + bookingDate + " for Pet ID " + petId + " [Appt #" + apptId + "]");
+            "Booked appointment [" + timeSlot + "] on " + bookingDate + " for Pet ID " + petId + " [Appt #" + apptId + "] (Status: Pending)");
 
         Database.addNotification(ownerId > 0 ? (int)ownerId : 8,
-            "Appointment #" + apptId + " confirmed for " + serviceType + " on " + bookingDate + " at " + timeSlot,
-            "Booking Confirmation");
+            "Appointment #" + apptId + " booked for " + serviceType + " on " + bookingDate + " at " + timeSlot + " (Pending Admin Confirmation)",
+            "Booking Request");
 
         Map<String, Object> res = new HashMap<>();
         res.put("success", true);
         res.put("appointment_id", apptId);
         res.put("pet_id", petId);
         res.put("pet_name", registeredPetName);
+        res.put("status", "Pending");
         res.put("is_new_customer", isNewCustomer);
-        res.put("message", "Appointment reserved successfully for " + bookingDate + " at " + timeSlot);
+        res.put("message", "Appointment reserved successfully with status 'Pending'. Awaiting clinic confirmation.");
         HttpUtils.sendJson(exchange, 200, res);
     }
 
@@ -291,7 +292,7 @@ public class AppointmentHandler implements HttpHandler {
         }
 
         Map<String, Object> existing = Database.getFirst(
-            "SELECT appointment_id, pet_id, booking_date, time_slot, status FROM appointments WHERE appointment_id = ?",
+            "SELECT appointment_id, pet_id, owner_id, booking_date, time_slot, status FROM appointments WHERE appointment_id = ?",
             apptId
         );
 
@@ -307,6 +308,21 @@ public class AppointmentHandler implements HttpHandler {
             "UPDATE appointments SET status = ? WHERE appointment_id = ?",
             newStatus, apptId
         );
+
+        long ownerId = HttpUtils.toLong(existing.get("owner_id"), 0L);
+        if ("Confirmed".equalsIgnoreCase(newStatus)) {
+            Database.addNotification(ownerId > 0 ? (int) ownerId : 8,
+                "Appointment #" + apptId + " on " + existing.get("booking_date") + " at " + existing.get("time_slot") + " has been CONFIRMED by PawLife staff.",
+                "Appointment Confirmed");
+        } else if ("Completed".equalsIgnoreCase(newStatus)) {
+            Database.addNotification(ownerId > 0 ? (int) ownerId : 8,
+                "Appointment #" + apptId + " has been marked as COMPLETED. Thank you for visiting PawLife Clinic!",
+                "Appointment Completed");
+        } else if ("Cancelled".equalsIgnoreCase(newStatus)) {
+            Database.addNotification(ownerId > 0 ? (int) ownerId : 8,
+                "Appointment #" + apptId + " has been CANCELLED.",
+                "Appointment Cancelled");
+        }
 
         Database.logAudit(1, "Sanvidu S.D.N (Admin)", "APPOINTMENT_STATUS_UPDATE", "Appointment Scheduling",
             "Updated Appointment #" + apptId + " status to [" + newStatus + "]");

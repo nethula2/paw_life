@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PawLife VetOps • Enterprise Clinic & Hospital Management Dashboard</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        chunky: ['"Fredoka"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            coral: '#FF5A27',
+                            yellow: '#FFD43B',
+                            pink: '#FFAEC4',
+                            purple: '#4C2882',
+                            darkpurple: '#1E1236',
+                            cream: '#FAF7F0',
+                            brown: '#3B2314',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-[#FAF7F0] text-slate-900 font-sans antialiased h-screen flex overflow-hidden relative">
+
+    <!-- =================================================================== -->
+    <!-- 0. ADMIN AUTHENTICATION GATEWAY (RESTRICTED ACCESS)                 -->
+    <!-- =================================================================== -->
+    <div id="admin-auth-overlay" class="fixed inset-0 z-50 bg-[#1E1236]/95 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl border-4 border-slate-900 shadow-[10px_10px_0px_#000] p-8 max-w-md w-full relative">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 rounded-2xl bg-amber-400 text-slate-950 border-3 border-slate-900 flex items-center justify-center text-3xl mx-auto mb-3 shadow-[3px_3px_0px_#000]">
+                    🛡️
+                </div>
+                <span class="inline-block px-3 py-1 rounded-full bg-rose-100 border border-rose-300 text-rose-800 text-[10px] font-black uppercase tracking-wider mb-2">
+                    RESTRICTED TO ADMINISTRATORS
+                </span>
+                <h2 class="text-2xl font-black text-slate-900 font-chunky">PawLife Admin Console</h2>
+                <p class="text-xs text-slate-500 font-medium mt-1">
+                    Sign in with administrator credentials to access internal hospital operations, clinical EHR, and BI analytics.
+                </p>
+            </div>
+
+            <!-- Error alert message -->
+            <div id="auth-error-alert" class="hidden p-3.5 bg-rose-50 border-2 border-rose-300 text-rose-800 text-xs font-bold rounded-xl mb-4"></div>
+
+            <form onsubmit="DashboardApp.handleAdminLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider mb-1">
+                        <i class="fas fa-user-shield text-[#FF5A27] mr-1"></i>Administrator Email or Username
+                    </label>
+                    <input type="text" id="admin-login-username" value="sanvidu.admin@pawlife.lk" placeholder="admin or sanvidu.admin@pawlife.lk" required
+                        class="w-full text-xs p-3.5 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold focus:bg-white focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider mb-1">
+                        <i class="fas fa-key text-amber-500 mr-1"></i>Password
+                    </label>
+                    <input type="password" id="admin-login-password" value="password123" placeholder="••••••••" required
+                        class="w-full text-xs p-3.5 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold focus:bg-white focus:outline-none">
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" id="admin-login-submit-btn" class="btn-chunky-brown w-full py-3.5 text-xs uppercase tracking-wider shadow-lg flex items-center justify-center space-x-2">
+                        <i class="fas fa-shield-alt mr-1.5"></i>
+                        <span>SIGN IN AS ADMINISTRATOR</span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="mt-6 pt-5 border-t-2 border-slate-100 text-center space-y-3">
+                <button type="button" onclick="DashboardApp.autofillAdmin()" class="w-full py-2.5 px-4 text-xs font-black bg-amber-100 hover:bg-amber-200 border-2 border-slate-900 rounded-xl transition text-slate-800 flex items-center justify-center space-x-2 cursor-pointer shadow-[2px_2px_0px_#000]">
+                    <i class="fas fa-magic text-[#FF5A27]"></i>
+                    <span>Autofill Master Admin (Sanvidu)</span>
+                </button>
+
+                <a href="/" class="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition pt-1">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to Customer Store & Website</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- 1. ENTERPRISE SIDEBAR NAVIGATION (LEFT)                             -->
+    <!-- =================================================================== -->
+    <aside class="w-72 bg-[#1E1236] text-white flex flex-col justify-between border-r-4 border-slate-900 z-30 shadow-[4px_0px_0px_#000]">
+        
+        <!-- Brand & Status -->
+        <div>
+            <div class="p-6 border-b-2 border-white/10 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-11 h-11 rounded-2xl bg-white text-[#1E1236] border-2 border-slate-900 flex items-center justify-center font-black text-xl shadow-[3px_3px_0px_#000]">
+                        🐾
+                    </div>
+                    <div>
+                        <h1 class="font-black text-xl font-chunky tracking-wide leading-none">PawLife</h1>
+                        <span class="text-[10px] text-amber-300 font-mono font-bold uppercase tracking-wider">Hospital VetOps</span>
+                    </div>
+                </div>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" title="System Live"></span>
+            </div>
+
+            <div class="px-6 py-3 bg-purple-950/60 border-b border-white/10 flex items-center justify-between text-[11px] font-bold text-purple-200">
+                <span class="flex items-center space-x-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>System Operational</span>
+                </span>
+                <span class="text-amber-400 font-mono">v2.4 Live</span>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="p-4 space-y-1.5">
+                <button data-view="overview" class="sidebar-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-black text-xs bg-[#FF5A27] text-white border-2 border-slate-900 shadow-[3px_3px_0px_#000] transition cursor-pointer">
+                    <i class="fas fa-th-large text-base w-5 text-center"></i>
+                    <span>Overview Hub</span>
+                </button>
+                <button data-view="booking" class="sidebar-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs text-purple-200 hover:text-white hover:bg-white/10 transition cursor-pointer">
+                    <i class="fas fa-calendar-alt text-base w-5 text-center text-teal-300"></i>
+                    <span>Appointments</span>
+                </button>
+                <button data-view="ehr" class="sidebar-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs text-purple-200 hover:text-white hover:bg-white/10 transition cursor-pointer">
+                    <i class="fas fa-heartbeat text-base w-5 text-center text-rose-300"></i>
+                    <span>Patients & EHR</span>
+                </button>
+                <button data-view="inventory" class="sidebar-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs text-purple-200 hover:text-white hover:bg-white/10 transition cursor-pointer">
+                    <i class="fas fa-boxes text-base w-5 text-center text-amber-300"></i>
+                    <span>Smart Inventory</span>
+                </button>
+                <button data-view="grooming" class="sidebar-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs text-purple-200 hover:text-white hover:bg-white/10 transition cursor-pointer">
+                    <i class="fas fa-cut text-base w-5 text-center text-pink-300"></i>
+                    <span>Grooming Salon</span>
+                </button>
+                <button data-view="operations" class="sidebar-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs text-purple-200 hover:text-white hover:bg-white/10 transition cursor-pointer">
+                    <i class="fas fa-users-cog text-base w-5 text-center text-sky-300"></i>
+                    <span>Staff Operations</span>
+                </button>
+                <button data-view="admin" class="sidebar-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-2xl font-bold text-xs text-purple-200 hover:text-white hover:bg-white/10 transition cursor-pointer">
+                    <i class="fas fa-shield-alt text-base w-5 text-center text-indigo-300"></i>
+                    <span>Admin & BI (R)</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Footer / Return to Public Website -->
+        <div class="p-4 border-t-2 border-white/10 space-y-2.5">
+            <div class="bg-purple-950/70 p-3 rounded-2xl border border-white/10 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5 overflow-hidden">
+                    <div id="sidebar-admin-avatar" class="w-8 h-8 rounded-full bg-amber-400 text-slate-950 font-black flex items-center justify-center text-xs border border-slate-900 shrink-0">
+                        SA
+                    </div>
+                    <div class="overflow-hidden">
+                        <div id="sidebar-admin-name" class="text-xs font-black text-white truncate">Sanvidu S.D.N</div>
+                        <div class="text-[10px] text-amber-300 font-bold flex items-center space-x-1">
+                            <i class="fas fa-shield-alt text-[9px]"></i>
+                            <span>Admin Verified</span>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="DashboardApp.logout()" title="Sign Out Admin" class="p-1.5 text-purple-300 hover:text-rose-400 hover:bg-white/10 rounded-lg transition cursor-pointer">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+
+            <a href="/" class="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-white hover:bg-amber-100 text-slate-900 text-xs font-black rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_#000] transition">
+                <i class="fas fa-arrow-left"></i>
+                <span>Customer Website</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- =================================================================== -->
+    <!-- 2. MAIN VIEW CONTAINER                                              -->
+    <!-- =================================================================== -->
+    <div class="flex-1 flex flex-col min-w-0 bg-[#FAF7F0] overflow-hidden">
+        
+        <!-- Top App Bar Header -->
+        <header class="h-20 bg-white border-b-4 border-slate-900 px-8 flex items-center justify-between z-20 shadow-[0_4px_0px_#0000000a]">
+            <!-- Breadcrumbs -->
+            <div>
+                <div id="dash-breadcrumb-title" class="text-xl font-black text-slate-900 font-chunky">
+                    Hospital Operations Overview
+                </div>
+                <div id="dash-breadcrumb-desc" class="text-xs text-slate-500 font-medium">
+                    Real-time clinic throughput, active appointments, and priority operational alerts
+                </div>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="flex items-center space-x-4">
+                
+                <!-- Global Search -->
+                <div class="relative w-80 hidden lg:block">
+                    <input type="text" id="dash-global-search" placeholder="Quick search patient or microchip... (Enter)" class="w-full text-xs py-2.5 pl-10 pr-4 rounded-xl border-2 border-slate-900 bg-slate-50 focus:bg-white font-bold transition">
+                    <i class="fas fa-search absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+                </div>
+
+                <!-- Live System Clock -->
+                <div class="hidden sm:flex items-center space-x-2 px-3.5 py-2 bg-amber-50 rounded-xl border-2 border-slate-900 text-xs font-black text-slate-800 shadow-[2px_2px_0px_#000]">
+                    <i class="fas fa-clock text-[#FF5A27]"></i>
+                    <span id="dash-live-clock">Loading clock...</span>
+                </div>
+
+                <!-- Quick Action Dropdown -->
+                <div class="relative">
+                    <button id="dash-quick-action-btn" onclick="DashboardApp.toggleQuickActionMenu()" class="btn-chunky-brown px-4 py-2.5 text-xs uppercase flex items-center space-x-1.5 cursor-pointer">
+                        <i class="fas fa-plus"></i>
+                        <span>New Action</span>
+                        <i class="fas fa-chevron-down text-[10px] ml-1"></i>
+                    </button>
+                    <div id="dash-quick-action-menu" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-2xl border-3 border-slate-900 shadow-[6px_6px_0px_#000] py-2 z-50 text-xs font-bold text-slate-800">
+                        <a href="javascript:void(0)" onclick="DashboardApp.openNewAppointmentModal()" class="flex items-center space-x-2 px-4 py-2.5 hover:bg-amber-100">
+                            <i class="fas fa-calendar-plus text-teal-600 w-4"></i>
+                            <span>Book Appointment</span>
+                        </a>
+                        <a href="javascript:void(0)" onclick="DashboardApp.switchView('ehr'); document.getElementById('register-pet-modal').classList.remove('hidden');" class="flex items-center space-x-2 px-4 py-2.5 hover:bg-amber-100">
+                            <i class="fas fa-paw text-rose-500 w-4"></i>
+                            <span>Register New Pet</span>
+                        </a>
+                        <a href="javascript:void(0)" onclick="DashboardApp.switchView('inventory'); InventoryModule.openAddBatchModal();" class="flex items-center space-x-2 px-4 py-2.5 hover:bg-amber-100">
+                            <i class="fas fa-box text-amber-600 w-4"></i>
+                            <span>Receive Supply Batch</span>
+                        </a>
+                        <a href="javascript:void(0)" onclick="DashboardApp.switchView('operations'); OperationsModule.openAssignShiftModal();" class="flex items-center space-x-2 px-4 py-2.5 hover:bg-amber-100">
+                            <i class="fas fa-user-clock text-purple-600 w-4"></i>
+                            <span>Allocate Staff Shift</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Exit to Public Website -->
+                <a href="/" class="px-4 py-2 bg-[#FF5A27] hover:bg-[#D43E10] text-white text-xs font-black rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_#000] transition flex items-center space-x-1.5 cursor-pointer">
+                    <i class="fas fa-external-link-alt text-xs"></i>
+                    <span>Public Site</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Scrollable Work Area -->
+        <main class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-8">
+            <div class="max-w-[1536px] mx-auto space-y-8">
+
+                <!-- ======================================================= -->
+                <!-- VIEW 1: MASTER DASHBOARD OVERVIEW HUB                   -->
+                <!-- ======================================================= -->
+                <div id="view-overview" class="dashboard-view space-y-8">
+                    
+                    <!-- Welcome Hero Banner -->
+                    <div class="chunky-panel p-8 bg-gradient-to-r from-amber-200 via-amber-100 to-orange-100 flex flex-col md:flex-row justify-between items-start md:items-center">
+                        <div class="space-y-1">
+                            <span class="badge-tag bg-amber-400 text-slate-950 font-black">HOSPITAL LIVE OPERATIONS</span>
+                            <h2 class="text-3xl font-black text-slate-900 font-chunky mt-2">Good Day, PawLife Clinical Operations Team!</h2>
+                            <p class="text-xs text-slate-700 font-medium max-w-2xl">
+                                Welcome to the unified hospital operations control center. Monitor appointments, review electronic health records, manage pharmacy inventory, and track live grooming workflows in real-time.
+                            </p>
+                        </div>
+                        <div class="mt-4 md:mt-0 flex space-x-3">
+                            <button onclick="DashboardApp.switchView('booking')" class="btn-chunky-brown px-5 py-2.5 text-xs uppercase">
+                                <i class="fas fa-calendar-check mr-1.5"></i>All Appointments
+                            </button>
+                            <button onclick="DashboardApp.switchView('ehr')" class="px-5 py-2.5 bg-white text-slate-900 font-black text-xs uppercase rounded-full border-2 border-slate-900 shadow-[3px_3px_0px_#000] hover:bg-amber-50 transition">
+                                <i class="fas fa-search mr-1.5"></i>Search EHR
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 5 Core KPI Metric Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div onclick="DashboardApp.switchView('booking')" class="chunky-panel p-5 cursor-pointer hover:bg-white transition group">
+                            <div class="flex justify-between items-center text-xs text-slate-500 font-bold uppercase">
+                                <span>Appointments</span>
+                                <i class="fas fa-calendar-day text-teal-600 group-hover:scale-110 transition"></i>
+                            </div>
+                            <div id="ov-kpi-appt" class="text-3xl font-black text-teal-700 mt-2 font-chunky">--</div>
+                            <div class="text-[10px] text-slate-400 font-medium mt-1">Booked for today</div>
+                        </div>
+
+                        <div onclick="DashboardApp.switchView('grooming')" class="chunky-panel p-5 cursor-pointer hover:bg-white transition group">
+                            <div class="flex justify-between items-center text-xs text-slate-500 font-bold uppercase">
+                                <span>Grooming Queue</span>
+                                <i class="fas fa-cut text-purple-600 group-hover:scale-110 transition"></i>
+                            </div>
+                            <div id="ov-kpi-groom" class="text-3xl font-black text-purple-700 mt-2 font-chunky">--</div>
+                            <div class="text-[10px] text-slate-400 font-medium mt-1">In station workflow</div>
+                        </div>
+
+                        <div onclick="DashboardApp.switchView('inventory')" class="chunky-panel p-5 cursor-pointer hover:bg-white transition group">
+                            <div class="flex justify-between items-center text-xs text-slate-500 font-bold uppercase">
+                                <span>Low Stock Items</span>
+                                <i class="fas fa-exclamation-triangle text-rose-500 group-hover:scale-110 transition"></i>
+                            </div>
+                            <div id="ov-kpi-stock" class="text-3xl font-black text-rose-600 mt-2 font-chunky">--</div>
+                            <div class="text-[10px] text-slate-400 font-medium mt-1">Below min threshold</div>
+                        </div>
+
+                        <div onclick="DashboardApp.switchView('operations')" class="chunky-panel p-5 cursor-pointer hover:bg-white transition group">
+                            <div class="flex justify-between items-center text-xs text-slate-500 font-bold uppercase">
+                                <span>Overdue Vaccines</span>
+                                <i class="fas fa-syringe text-amber-500 group-hover:scale-110 transition"></i>
+                            </div>
+                            <div id="ov-kpi-overdue" class="text-3xl font-black text-amber-600 mt-2 font-chunky">--</div>
+                            <div class="text-[10px] text-slate-400 font-medium mt-1">Booster notices due</div>
+                        </div>
+
+                        <div onclick="DashboardApp.switchView('admin')" class="chunky-panel p-5 col-span-2 md:col-span-1 cursor-pointer hover:bg-white transition group">
+                            <div class="flex justify-between items-center text-xs text-slate-500 font-bold uppercase">
+                                <span>Total Revenue</span>
+                                <i class="fas fa-coins text-slate-900 group-hover:scale-110 transition"></i>
+                            </div>
+                            <div id="ov-kpi-revenue" class="text-2xl font-black text-slate-900 mt-2 font-chunky">--</div>
+                            <div class="text-[10px] text-slate-400 font-medium mt-1">R linear projection active</div>
+                        </div>
+                    </div>
+
+                    <!-- Department Functional Quick Launchers Grid -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-black text-slate-900 font-chunky">Hospital Departmental Modules</h3>
+                            <span class="text-xs text-slate-500 font-bold">6 Core Enterprise Domains</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            
+                            <!-- 1. Appointments -->
+                            <div class="chunky-panel p-6 flex flex-col justify-between hover:translate-y-[-2px] transition">
+                                <div>
+                                    <div class="w-12 h-12 rounded-2xl bg-teal-100 border-2 border-slate-900 text-teal-800 flex items-center justify-center text-xl mb-4 shadow-[2px_2px_0px_#000]">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    <h4 class="text-lg font-black font-chunky text-slate-900">Appointment Scheduling</h4>
+                                    <p class="text-xs text-slate-600 font-medium mt-1">Master schedule, real-time slot conflict lock verification, and service booking manager.</p>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-slate-200 flex justify-between items-center">
+                                    <span class="text-xs font-bold text-teal-700">Conflict Engine Active</span>
+                                    <button onclick="DashboardApp.switchView('booking')" class="text-xs font-black text-[#FF5A27] hover:underline flex items-center space-x-1">
+                                        <span>Open Hub</span>
+                                        <i class="fas fa-arrow-right text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 2. Pet EHR -->
+                            <div class="chunky-panel p-6 flex flex-col justify-between hover:translate-y-[-2px] transition">
+                                <div>
+                                    <div class="w-12 h-12 rounded-2xl bg-rose-100 border-2 border-slate-900 text-rose-800 flex items-center justify-center text-xl mb-4 shadow-[2px_2px_0px_#000]">
+                                        <i class="fas fa-heartbeat"></i>
+                                    </div>
+                                    <h4 class="text-lg font-black font-chunky text-slate-900">Pet Health Records (EHR)</h4>
+                                    <p class="text-xs text-slate-600 font-medium mt-1">Electronic medical histories, consultation diagnoses, +365 day vaccine scheduler, and digital prescriptions.</p>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-slate-200 flex justify-between items-center">
+                                    <span class="text-xs font-bold text-emerald-700">Clinical Logs Ready</span>
+                                    <button onclick="DashboardApp.switchView('ehr')" class="text-xs font-black text-[#FF5A27] hover:underline flex items-center space-x-1">
+                                        <span>Open EHR</span>
+                                        <i class="fas fa-arrow-right text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 3. Smart Inventory -->
+                            <div class="chunky-panel p-6 flex flex-col justify-between hover:translate-y-[-2px] transition">
+                                <div>
+                                    <div class="w-12 h-12 rounded-2xl bg-amber-100 border-2 border-slate-900 text-amber-800 flex items-center justify-center text-xl mb-4 shadow-[2px_2px_0px_#000]">
+                                        <i class="fas fa-boxes"></i>
+                                    </div>
+                                    <h4 class="text-lg font-black font-chunky text-slate-900">Smart Supply Chain</h4>
+                                    <p class="text-xs text-slate-600 font-medium mt-1">Pharmaceutical batches, future expiry date validation, low-stock triggers, and session stock deduction.</p>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-slate-200 flex justify-between items-center">
+                                    <span class="text-xs font-bold text-amber-700">Batch Expiry Enforced</span>
+                                    <button onclick="DashboardApp.switchView('inventory')" class="text-xs font-black text-[#FF5A27] hover:underline flex items-center space-x-1">
+                                        <span>Open Inventory</span>
+                                        <i class="fas fa-arrow-right text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 4. Grooming Queue -->
+                            <div class="chunky-panel p-6 flex flex-col justify-between hover:translate-y-[-2px] transition">
+                                <div>
+                                    <div class="w-12 h-12 rounded-2xl bg-pink-100 border-2 border-slate-900 text-pink-800 flex items-center justify-center text-xl mb-4 shadow-[2px_2px_0px_#000]">
+                                        <i class="fas fa-cut"></i>
+                                    </div>
+                                    <h4 class="text-lg font-black font-chunky text-slate-900">Grooming Station Queue</h4>
+                                    <p class="text-xs text-slate-600 font-medium mt-1">4-stage terminal pipeline (Checked-in ➔ Bathing ➔ Styling ➔ Ready) with automated owner notifications.</p>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-slate-200 flex justify-between items-center">
+                                    <span class="text-xs font-bold text-pink-700">SMS Ready Trigger</span>
+                                    <button onclick="DashboardApp.switchView('grooming')" class="text-xs font-black text-[#FF5A27] hover:underline flex items-center space-x-1">
+                                        <span>Open Terminal</span>
+                                        <i class="fas fa-arrow-right text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 5. Staff Duty & Operations -->
+                            <div class="chunky-panel p-6 flex flex-col justify-between hover:translate-y-[-2px] transition">
+                                <div>
+                                    <div class="w-12 h-12 rounded-2xl bg-purple-100 border-2 border-slate-900 text-purple-800 flex items-center justify-center text-xl mb-4 shadow-[2px_2px_0px_#000]">
+                                        <i class="fas fa-users-cog"></i>
+                                    </div>
+                                    <h4 class="text-lg font-black font-chunky text-slate-900">Staff Shifts & Rosters</h4>
+                                    <p class="text-xs text-slate-600 font-medium mt-1">Weekly shift allocation calendar with conflict detection to prevent overlapping shifts for staff.</p>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-slate-200 flex justify-between items-center">
+                                    <span class="text-xs font-bold text-purple-700">Shift Overlap Guard</span>
+                                    <button onclick="DashboardApp.switchView('operations')" class="text-xs font-black text-[#FF5A27] hover:underline flex items-center space-x-1">
+                                        <span>Open Rosters</span>
+                                        <i class="fas fa-arrow-right text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 6. BI & Analytics (R Engine) -->
+                            <div class="chunky-panel p-6 flex flex-col justify-between hover:translate-y-[-2px] transition">
+                                <div>
+                                    <div class="w-12 h-12 rounded-2xl bg-indigo-100 border-2 border-slate-900 text-indigo-800 flex items-center justify-center text-xl mb-4 shadow-[2px_2px_0px_#000]">
+                                        <i class="fab fa-r-project"></i>
+                                    </div>
+                                    <h4 class="text-lg font-black font-chunky text-slate-900">Business Intelligence & R</h4>
+                                    <p class="text-xs text-slate-600 font-medium mt-1">R Language statistical engine executing predictive revenue analytics, chart generation, and RBAC security matrix.</p>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-slate-200 flex justify-between items-center">
+                                    <span class="text-xs font-bold text-indigo-700">R 4.6.1 Integrated</span>
+                                    <button onclick="DashboardApp.switchView('admin')" class="text-xs font-black text-[#FF5A27] hover:underline flex items-center space-x-1">
+                                        <span>Open Analytics</span>
+                                        <i class="fas fa-arrow-right text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Live Operations Two-Column Feed -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        
+                        <!-- Left: Today's Appointments -->
+                        <div class="lg:col-span-2 chunky-panel p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <div>
+                                    <h3 class="font-black text-lg text-slate-900 font-chunky">Today's Appointment Schedule</h3>
+                                    <p class="text-xs text-slate-500 font-medium">Real-time bookings synced from SQLite database</p>
+                                </div>
+                                <button onclick="AppointmentsModule.loadAppointments()" class="text-xs font-black text-[#FF5A27] hover:underline flex items-center space-x-1">
+                                    <i class="fas fa-sync-alt text-[10px]"></i>
+                                    <span>Sync</span>
+                                </button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr class="bg-amber-50 text-slate-800 font-bold border-b-2 border-slate-900">
+                                            <th class="p-3">ID</th>
+                                            <th class="p-3">Pet & Owner</th>
+                                            <th class="p-3">Service</th>
+                                            <th class="p-3">Slot</th>
+                                            <th class="p-3">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ov-appointments-tbody" class="divide-y divide-slate-100"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Right: Urgent Clinical Alerts -->
+                        <div class="chunky-panel p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-black text-lg text-slate-900 font-chunky flex items-center space-x-2">
+                                    <i class="fas fa-bell text-rose-500"></i>
+                                    <span>Priority Alert Center</span>
+                                </h3>
+                                <span class="badge-tag bg-rose-100 text-rose-800">Action Required</span>
+                            </div>
+                            <div id="ov-alerts-container" class="space-y-3"></div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- ======================================================= -->
+                <!-- VIEW 2: APPOINTMENTS & SCHEDULING HUB                   -->
+                <!-- ======================================================= -->
+                <div id="view-booking" class="dashboard-view hidden space-y-6">
+                    <div class="chunky-panel p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h2 class="text-2xl font-black text-slate-900 font-chunky">Master Appointment Scheduling & Management</h2>
+                                <span class="badge-tag bg-blue-100 text-blue-800 font-bold">Scheduling Hub</span>
+                            </div>
+                            <p class="text-xs text-slate-500 font-medium mt-1">Central appointment calendar, real-time slot conflict prevention, and veterinary service allocations.</p>
+                        </div>
+                        <button onclick="AppointmentsModule.loadAppointments()" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase tracking-wider mt-4 sm:mt-0">
+                            <i class="fas fa-sync-alt mr-1"></i>Refresh Bookings
+                        </button>
+                    </div>
+
+                    <div class="chunky-panel p-6">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-amber-50 text-slate-800 font-bold border-b-2 border-slate-900">
+                                        <th class="p-3">ID</th>
+                                        <th class="p-3">Pet & Owner</th>
+                                        <th class="p-3">Service</th>
+                                        <th class="p-3">Date & Slot</th>
+                                        <th class="p-3">Assigned Staff</th>
+                                        <th class="p-3">Status</th>
+                                        <th class="p-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="appointments-table-tbody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ======================================================= -->
+                <!-- VIEW 3: PATIENTS & ELECTRONIC HEALTH RECORDS (EHR)      -->
+                <!-- ======================================================= -->
+                <div id="view-ehr" class="dashboard-view hidden space-y-6">
+                    <div class="chunky-panel p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h2 class="text-2xl font-black text-slate-900 font-chunky">Pet Health Records & Clinical Consultations (EHR)</h2>
+                                <span class="badge-tag bg-emerald-100 text-emerald-800 font-bold">Clinical Care</span>
+                            </div>
+                            <p class="text-xs text-slate-500 font-medium mt-1">Comprehensive pet medical histories, diagnostic consultation logging, and preventative vaccination tracking.</p>
+                        </div>
+                        <button onclick="document.getElementById('register-pet-modal').classList.remove('hidden')" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase tracking-wider mt-4 sm:mt-0">
+                            <i class="fas fa-plus mr-1"></i>Register New Pet
+                        </button>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div class="chunky-panel p-4 flex space-x-3 items-center">
+                        <input type="text" id="pet-search-input" oninput="PetEhrModule.searchPets()" placeholder="Search pet by Name, Breed, Microchip Number..." class="flex-1 text-xs p-3 border-2 border-slate-900 rounded-xl bg-slate-50 focus:bg-white font-bold">
+                        <button onclick="PetEhrModule.searchPets()" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase">Search</button>
+                    </div>
+                    <div id="pet-search-alert" class="hidden p-3 bg-amber-50 border-2 border-amber-300 text-amber-900 rounded-xl text-xs font-bold"></div>
+                    
+                    <!-- Patient Cards Grid -->
+                    <div id="pet-cards-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+                </div>
+
+                <!-- ======================================================= -->
+                <!-- VIEW 4: PHARMACY & SMART SUPPLY CHAIN (INVENTORY)       -->
+                <!-- ======================================================= -->
+                <div id="view-inventory" class="dashboard-view hidden space-y-6">
+                    <div class="chunky-panel p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h2 class="text-2xl font-black text-slate-900 font-chunky">Pharmacy & Smart Supply Chain Management</h2>
+                                <span class="badge-tag bg-amber-100 text-amber-800 font-bold">Inventory Control</span>
+                            </div>
+                            <p class="text-xs text-slate-500 font-medium mt-1">Pharmaceutical batch tracking, automated low-stock triggers, and expiry date management.</p>
+                        </div>
+                        <button onclick="InventoryModule.openAddBatchModal()" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase tracking-wider mt-4 sm:mt-0">
+                            <i class="fas fa-plus mr-1"></i>Receive New Batch
+                        </button>
+                    </div>
+
+                    <!-- Search & Filter Controls -->
+                    <div class="chunky-panel p-4 flex flex-wrap gap-3 items-center">
+                        <input type="text" id="inventory-search-input" oninput="InventoryModule.loadSupplies()" placeholder="Search Item or Batch..." class="flex-1 text-xs p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                        <select id="inventory-category-filter" onchange="InventoryModule.loadSupplies()" class="text-xs p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                            <option value="">All Categories</option>
+                            <option value="Vaccine">Vaccines (Clinical)</option>
+                            <option value="Antibiotic">Antibiotics (Clinical)</option>
+                            <option value="Pain Relief">Pain Relief (Clinical)</option>
+                            <option value="Surgical Supply">Surgical Supplies</option>
+                            <option value="Grooming Shampoo">Shampoos & Washes</option>
+                            <option value="Grooming Tool">Brushes & Grooming Tools</option>
+                            <option value="Wellness">Wellness & Balms</option>
+                        </select>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="inventory-low-stock-check" onchange="InventoryModule.loadSupplies()" class="w-4 h-4 text-teal-600 rounded border-2 border-slate-900">
+                            <label for="inventory-low-stock-check" class="text-xs font-bold text-slate-800">Low Stock Only</label>
+                        </div>
+                    </div>
+
+                    <div class="chunky-panel p-6 overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-amber-50 text-slate-800 font-bold border-b-2 border-slate-900">
+                                    <th class="p-3">Supply Item</th>
+                                    <th class="p-3">Category</th>
+                                    <th class="p-3">Batch #</th>
+                                    <th class="p-3">Balance</th>
+                                    <th class="p-3">Expiry Date</th>
+                                    <th class="p-3">Unit Price</th>
+                                    <th class="p-3">Supplier</th>
+                                    <th class="p-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table-tbody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ======================================================= -->
+                <!-- VIEW 5: GROOMING & SPA STATION QUEUE TERMINAL           -->
+                <!-- ======================================================= -->
+                <div id="view-grooming" class="dashboard-view hidden space-y-6">
+                    <div class="chunky-panel p-6">
+                        <div class="flex items-center space-x-2">
+                            <h2 class="text-2xl font-black text-slate-900 font-chunky">Grooming & Spa Station Queue Terminal</h2>
+                            <span class="badge-tag bg-pink-100 text-pink-800 font-bold">Salon Operations</span>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium mt-1">Interactive 4-stage terminal pipeline tracking pet care progression from check-in to client pick-up.</p>
+                    </div>
+
+                    <!-- 4 Columns Kanban -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6" id="grooming-queue-columns">
+                        <div class="chunky-panel p-4 bg-slate-100">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="font-black text-xs uppercase text-slate-700 font-chunky">1. Checked-in</span>
+                                <span id="queue-count-checkedin" class="badge-tag bg-white font-mono">0</span>
+                            </div>
+                            <div id="queue-col-checkedin" class="space-y-3"></div>
+                        </div>
+                        <div class="chunky-panel p-4 bg-blue-50/70">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="font-black text-xs uppercase text-blue-900 font-chunky">2. Bathing Station</span>
+                                <span id="queue-count-bathing" class="badge-tag bg-white font-mono">0</span>
+                            </div>
+                            <div id="queue-col-bathing" class="space-y-3"></div>
+                        </div>
+                        <div class="chunky-panel p-4 bg-purple-50/70">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="font-black text-xs uppercase text-purple-900 font-chunky">3. Scissor & Styling</span>
+                                <span id="queue-count-styling" class="badge-tag bg-white font-mono">0</span>
+                            </div>
+                            <div id="queue-col-styling" class="space-y-3"></div>
+                        </div>
+                        <div class="chunky-panel p-4 bg-amber-50/70">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="font-black text-xs uppercase text-amber-900 font-chunky">4. Ready for Pick-up</span>
+                                <span id="queue-count-ready" class="badge-tag bg-white font-mono">0</span>
+                            </div>
+                            <div id="queue-col-ready" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ======================================================= -->
+                <!-- VIEW 6: STAFF OPERATIONS & SHIFT ROSTER                 -->
+                <!-- ======================================================= -->
+                <div id="view-operations" class="dashboard-view hidden space-y-6">
+                    <div class="chunky-panel p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h2 class="text-2xl font-black text-slate-900 font-chunky">Operational Centre & Staff Management</h2>
+                                <span class="badge-tag bg-purple-100 text-purple-800 font-bold">Operations Hub</span>
+                            </div>
+                            <p class="text-xs text-slate-500 font-medium mt-1">Real-time clinic throughput, operational alert center, and weekly duty shift schedules.</p>
+                        </div>
+                        <button onclick="OperationsModule.openAssignShiftModal()" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase tracking-wider mt-4 sm:mt-0">
+                            <i class="fas fa-calendar-plus mr-1"></i>Allocate Shift
+                        </button>
+                    </div>
+
+                    <!-- Shift Roster & Staff on Duty -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 chunky-panel p-6">
+                            <h3 class="font-black text-base text-slate-900 mb-3 font-chunky">Weekly Staff Shift Roster</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr class="bg-amber-50 text-slate-800 font-bold border-b-2 border-slate-900">
+                                            <th class="p-3">Staff Member</th>
+                                            <th class="p-3">Date</th>
+                                            <th class="p-3">Shift</th>
+                                            <th class="p-3">Hours</th>
+                                            <th class="p-3">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="shifts-table-tbody" class="divide-y divide-slate-100"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="chunky-panel p-6">
+                            <h3 class="font-black text-base text-slate-900 mb-3 font-chunky">Staff On Duty (Today)</h3>
+                            <div id="op-staff-duty-list" class="space-y-2.5"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ======================================================= -->
+                <!-- VIEW 7: SYSTEM ADMINISTRATION & BUSINESS INTELLIGENCE   -->
+                <!-- ======================================================= -->
+                <div id="view-admin" class="dashboard-view hidden space-y-6">
+                    <div class="chunky-panel p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h2 class="text-2xl font-black text-slate-900 font-chunky">System Administration & Business Intelligence</h2>
+                                <span class="badge-tag bg-slate-900 text-white font-mono">Administration</span>
+                            </div>
+                            <p class="text-xs text-slate-500 font-medium mt-1">Enterprise RBAC security matrix, immutable audit logging, and R statistical predictive revenue analytics.</p>
+                        </div>
+                        <button onclick="AdminModule.loadBIAnalytics()" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase tracking-wider mt-4 sm:mt-0">
+                            <i class="fab fa-r-project mr-1"></i>Run R Statistical Analysis
+                        </button>
+                    </div>
+
+                    <!-- R Analytics Card -->
+                    <div class="bg-[#2D1D13] text-white p-8 rounded-3xl border-4 border-slate-900 shadow-[6px_6px_0px_#000]">
+                        <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                            <div>
+                                <span class="px-3 py-1 text-xs bg-amber-400 text-slate-950 rounded-full font-mono font-black">R LANGUAGE v4.6.1 INTEGRATION</span>
+                                <h3 class="text-xl font-black mt-2 font-chunky">Strategic Business Intelligence & Predictive Revenue Analytics</h3>
+                            </div>
+                            <button onclick="AdminModule.loadBIAnalytics()" class="px-4 py-2 bg-amber-400 text-slate-950 font-black text-xs rounded-full shadow hover:bg-amber-300 transition">
+                                Recompute in R
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-black/30 p-4 rounded-2xl border border-white/10">
+                                <div class="text-xs text-slate-400 font-bold">Total Revenue (R)</div>
+                                <div id="bi-total-rev" class="text-2xl font-black text-teal-300 mt-1 font-chunky">--</div>
+                            </div>
+                            <div class="bg-black/30 p-4 rounded-2xl border border-white/10">
+                                <div class="text-xs text-slate-400 font-bold">Total Appointments</div>
+                                <div id="bi-total-appt" class="text-2xl font-black text-sky-300 mt-1 font-chunky">--</div>
+                            </div>
+                            <div class="bg-black/30 p-4 rounded-2xl border border-white/10">
+                                <div class="text-xs text-slate-400 font-bold">Average Transaction</div>
+                                <div id="bi-avg-txn" class="text-2xl font-black text-purple-300 mt-1 font-chunky">--</div>
+                            </div>
+                            <div class="bg-black/30 p-4 rounded-2xl border border-white/10">
+                                <div class="text-xs text-slate-400 font-bold">Linear Forecast (+12.5%)</div>
+                                <div id="bi-projected-rev" class="text-2xl font-black text-emerald-300 mt-1 font-chunky">--</div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 text-slate-800 border-2 border-slate-900">
+                            <div class="text-xs font-black text-slate-700 mb-2">Visualization Rendered by Rscript grDevices:</div>
+                            <img id="bi-r-chart-img" src="/img/bi_revenue_analytics.png" alt="R Business Intelligence Analytics Chart" class="w-full h-auto rounded-xl border">
+                        </div>
+                    </div>
+
+                    <!-- RBAC Matrix -->
+                    <div class="chunky-panel p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="font-black text-base text-slate-900 font-chunky">Role-Based Access Control (RBAC) Permissions Matrix</h3>
+                                <p class="text-xs text-slate-500 font-medium">Master Role Protection active on Administrator role</p>
+                            </div>
+                        </div>
+                        <div id="rbac-matrix-container"></div>
+                    </div>
+
+                    <!-- Audit Logs -->
+                    <div class="chunky-panel p-6">
+                        <h3 class="font-black text-base text-slate-900 mb-3 font-chunky">System Audit Trail (Immutable Security Log)</h3>
+                        <div class="overflow-x-auto max-h-72 overflow-y-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="sticky top-0 bg-amber-50 text-slate-800 font-bold border-b-2 border-slate-900">
+                                    <tr>
+                                        <th class="p-3">Log ID</th>
+                                        <th class="p-3">Timestamp</th>
+                                        <th class="p-3">User</th>
+                                        <th class="p-3">Action</th>
+                                        <th class="p-3">Module</th>
+                                        <th class="p-3">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-logs-tbody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Hidden containers needed for data synchronization -->
+    <div class="hidden">
+        <div id="op-kpi-appt"></div>
+        <div id="op-kpi-grooming"></div>
+        <div id="op-kpi-lowstock"></div>
+        <div id="op-kpi-overdue"></div>
+        <div id="op-kpi-revenue"></div>
+        <div id="op-alerts-container"></div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2"></div>
+
+    <!-- =================================================================== -->
+    <!-- MODALS                                                              -->
+    <!-- =================================================================== -->
+
+    <!-- Modal: Register New Pet -->
+    <div id="register-pet-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 border-4 border-slate-900 shadow-[8px_8px_0px_#000]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-black text-xl text-slate-900 font-chunky">Register New Pet Profile</h3>
+                <button onclick="document.getElementById('register-pet-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+            <form onsubmit="event.preventDefault(); PetEhrModule.submitPetRegistration();" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Pet Name *</label>
+                    <input type="text" id="reg-pet-name" required placeholder="e.g. Milo" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Species *</label>
+                        <select id="reg-species" required class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                            <option value="Dog">Dog</option>
+                            <option value="Cat">Cat</option>
+                            <option value="Bird">Bird</option>
+                            <option value="Rabbit">Rabbit</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Breed *</label>
+                        <input type="text" id="reg-breed" required placeholder="e.g. Golden Retriever" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Gender</label>
+                        <select id="reg-gender" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Microchip Number *</label>
+                        <input type="text" id="reg-microchip" required placeholder="e.g. MC-981006" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-mono font-bold">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Owner Contact Phone</label>
+                    <input type="text" id="reg-owner-phone" placeholder="077-1234567" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                </div>
+                <div class="flex justify-end space-x-3 pt-3">
+                    <button type="button" onclick="document.getElementById('register-pet-modal').classList.add('hidden')" class="px-5 py-2.5 border-2 border-slate-900 rounded-full font-bold text-slate-700">Cancel</button>
+                    <button type="submit" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase tracking-wider">Save Patient</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Electronic Health Record Drawer -->
+    <div id="ehr-detail-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border-4 border-slate-900 shadow-[10px_10px_0px_#000]">
+            <div class="p-6 bg-[#5A36A8] text-white flex justify-between items-center border-b-2 border-slate-900">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 rounded-2xl bg-white text-[#5A36A8] border-2 border-slate-900 flex items-center justify-center text-2xl">🐾</div>
+                    <div>
+                        <h3 id="ehr-pet-name" class="font-black text-2xl font-chunky leading-tight">Pet Name</h3>
+                        <div id="ehr-pet-meta" class="text-xs text-purple-200 font-medium">Species • Breed</div>
+                    </div>
+                </div>
+                <button onclick="PetEhrModule.closeEHRModal()" class="w-9 h-9 rounded-full bg-white text-slate-900 font-bold flex items-center justify-center hover:bg-rose-500 hover:text-white transition">✕</button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-amber-50/60 p-4 rounded-2xl border-2 border-slate-900">
+                    <div>
+                        <span class="text-slate-500 font-bold block">Microchip ID:</span>
+                        <span id="ehr-pet-microchip" class="font-mono font-black text-slate-900 text-sm">--</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 font-bold block">Gender:</span>
+                        <span id="ehr-pet-gender" class="font-black text-slate-900">--</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 font-bold block">Date of Birth:</span>
+                        <span id="ehr-pet-dob" class="font-bold text-slate-900">--</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 font-bold block">Owner Account:</span>
+                        <span id="ehr-pet-owner" class="font-bold text-slate-900">--</span>
+                    </div>
+                </div>
+
+                <!-- Consultations Section -->
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-black text-base text-slate-900 font-chunky">Clinical Consultations</h4>
+                        <button onclick="PetEhrModule.openNewConsultationModal()" class="btn-chunky-brown px-4 py-1.5 text-[11px] uppercase">
+                            <i class="fas fa-notes-medical mr-1"></i>Log Consultation
+                        </button>
+                    </div>
+                    <div id="ehr-consultations-list" class="space-y-3"></div>
+                </div>
+
+                <!-- Preventative Vaccinations -->
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-black text-base text-slate-900 font-chunky">Vaccination Protocol Schedule (+365 Days)</h4>
+                        <button onclick="PetEhrModule.openAdministerVaccineModal()" class="btn-chunky-brown px-4 py-1.5 text-[11px] uppercase">
+                            <i class="fas fa-syringe mr-1"></i>Administer Vaccine
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-amber-100 text-slate-900 font-bold border-b-2 border-slate-900">
+                                    <th class="p-2.5">Vaccine</th>
+                                    <th class="p-2.5">Batch</th>
+                                    <th class="p-2.5">Administered</th>
+                                    <th class="p-2.5">Next Due</th>
+                                    <th class="p-2.5">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ehr-vaccinations-tbody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: New Clinical Consultation -->
+    <div id="new-consultation-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 border-4 border-slate-900 shadow-[8px_8px_0px_#000]">
+            <h3 class="font-black text-xl text-slate-900 mb-4 font-chunky">Log Clinical Consultation Record</h3>
+            <form onsubmit="event.preventDefault(); PetEhrModule.submitConsultation();" class="space-y-4 text-xs">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Vitals (Weight, Temp, HR)</label>
+                        <input type="text" id="consult-vitals" placeholder="Weight: 28kg, Temp: 38.5C" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-medium">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-[#FF5A27] mb-1">Clinical Diagnosis * (Mandatory Clinical Finding)</label>
+                        <input type="text" id="consult-diagnosis" placeholder="e.g. Otitis Externa" required class="w-full p-3 border-2 border-slate-900 rounded-xl bg-amber-50 font-black text-slate-900">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Treatment Notes & Follow-up * (Mandatory)</label>
+                    <textarea id="consult-treatment" rows="2" placeholder="Describe clinical treatment performed..." required class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-medium"></textarea>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-2xl border-2 border-slate-900 space-y-2">
+                    <span class="font-black text-purple-950 text-xs uppercase font-chunky">Issue Digital Prescription</span>
+                    <input type="text" id="consult-rx-meds" placeholder="Medication Details (e.g. Surolan Ear Drops 15ml)" class="w-full p-2.5 border border-purple-300 rounded-xl font-medium">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="consult-rx-dosage" placeholder="Dosage (e.g. 5 drops BID)" class="w-full p-2.5 border border-purple-300 rounded-xl font-medium">
+                        <input type="text" id="consult-rx-instructions" placeholder="Instructions (e.g. For 7 days)" class="w-full p-2.5 border border-purple-300 rounded-xl font-medium">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 pt-3 border-t">
+                    <button type="button" onclick="PetEhrModule.closeNewConsultationModal()" class="px-5 py-2.5 border-2 border-slate-900 rounded-full font-bold text-slate-700">Cancel</button>
+                    <button type="submit" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase tracking-wider">Save Consultation Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Administer Vaccine -->
+    <div id="administer-vaccine-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border-4 border-slate-900 shadow-[8px_8px_0px_#000]">
+            <h3 class="font-black text-xl text-slate-900 mb-4 font-chunky">Administer Preventative Vaccine</h3>
+            <form onsubmit="event.preventDefault(); PetEhrModule.submitVaccine();" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Vaccine Name *</label>
+                    <input type="text" id="vac-name" placeholder="e.g. Rabies Nobivac R" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Batch Number *</label>
+                    <input type="text" id="vac-batch" placeholder="e.g. BAT-2026-R01" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-mono font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Date Administered</label>
+                    <input type="date" id="vac-date" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold">
+                </div>
+                <div class="p-3 bg-teal-50 border-2 border-teal-300 rounded-xl text-teal-900">
+                    ℹ️ Next booster due date will be automatically computed to <strong>+365 Days</strong>.
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="PetEhrModule.closeAdministerVaccineModal()" class="px-5 py-2 border-2 border-slate-900 rounded-full font-bold text-slate-700">Cancel</button>
+                    <button type="submit" class="btn-chunky-brown px-6 py-2 text-xs uppercase font-black">Record & Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: View Prescription -->
+    <div id="prescription-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border-4 border-slate-900">
+            <h3 class="font-black text-xl text-slate-900 mb-4 font-chunky">Digital Clinical Prescription</h3>
+            <div id="rx-content-display" class="bg-amber-50 p-6 rounded-2xl border-2 border-slate-900 space-y-3 font-mono text-xs"></div>
+            <div class="flex justify-end pt-4">
+                <button onclick="PetEhrModule.closePrescriptionModal()" class="px-5 py-2.5 border-2 border-slate-900 rounded-full font-bold text-slate-700 text-xs">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add New Inventory Batch -->
+    <div id="add-batch-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 border-4 border-slate-900">
+            <h3 class="font-black text-xl text-slate-900 mb-4 font-chunky">Receive Medical Supply Batch</h3>
+            <form onsubmit="event.preventDefault(); InventoryModule.submitNewBatch();" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Item / Vaccine Name *</label>
+                    <input type="text" id="batch-name" placeholder="e.g. Rabies Nobivac R" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Category</label>
+                        <select id="batch-category" class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold">
+                            <option value="Vaccine">Vaccine</option>
+                            <option value="Antibiotic">Antibiotic</option>
+                            <option value="Pain Relief">Pain Relief</option>
+                            <option value="Grooming Shampoo">Grooming Product</option>
+                            <option value="Surgical Supply">Surgical Supply</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Batch Number *</label>
+                        <input type="text" id="batch-num" placeholder="BAT-9021" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-mono font-bold">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Quantity Received</label>
+                        <input type="number" id="batch-qty" min="1" value="20" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-black">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Min Threshold</label>
+                        <input type="number" id="batch-min-thresh" min="1" value="10" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Unit Price (LKR)</label>
+                        <input type="number" id="batch-price" min="1" value="2500" class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-[#FF5A27] mb-1">Expiry Date * (Must be a future date)</label>
+                    <input type="date" id="batch-expiry" required class="w-full p-3 border-2 border-slate-900 rounded-xl bg-amber-50 font-black">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Supplier</label>
+                    <select id="batch-supplier-select" class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold"></select>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="InventoryModule.closeAddBatchModal()" class="px-5 py-2.5 border-2 border-slate-900 rounded-full font-bold text-slate-700">Cancel</button>
+                    <button type="submit" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase font-black">Save Batch & Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Deduct Stock -->
+    <div id="deduct-stock-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 border-4 border-slate-900">
+            <h3 class="font-black text-xl text-slate-900 mb-1 font-chunky">Deduct Inventory Stock</h3>
+            <p id="deduct-supply-name" class="text-xs font-black text-[#FF5A27] mb-1"></p>
+            <p id="deduct-current-qty" class="text-xs text-slate-500 mb-4 font-bold"></p>
+            <form onsubmit="event.preventDefault(); InventoryModule.submitStockDeduction();" class="space-y-4 text-xs">
+                <input type="hidden" id="deduct-supply-id">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Quantity Used</label>
+                    <input type="number" id="deduct-qty" min="1" value="1" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-black">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Session / Usage Reference</label>
+                    <input type="text" id="deduct-ref" placeholder="e.g. Grooming Session #2 / Clinical Treatment" class="w-full p-3 border-2 border-slate-900 rounded-xl font-medium">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="InventoryModule.closeDeductModal()" class="px-4 py-2 border-2 border-slate-900 rounded-full font-bold text-slate-700">Cancel</button>
+                    <button type="submit" class="btn-chunky-brown px-5 py-2 text-xs uppercase font-black">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Allocate Staff Shift -->
+    <div id="assign-shift-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border-4 border-slate-900">
+            <h3 class="font-black text-xl text-slate-900 mb-4 font-chunky">Allocate Staff Shift</h3>
+            <form onsubmit="event.preventDefault(); OperationsModule.submitShiftAssignment();" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Staff Member</label>
+                    <select id="shift-staff-select" class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold"></select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Shift Date</label>
+                    <input type="date" id="shift-date-input" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Shift Type</label>
+                    <select id="shift-type-select" class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold">
+                        <option value="Morning">Morning Shift (08:00 AM - 02:00 PM)</option>
+                        <option value="Evening">Evening Shift (02:00 PM - 08:00 PM)</option>
+                        <option value="Full Day">Full Day Shift (09:00 AM - 05:00 PM)</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="OperationsModule.closeAssignShiftModal()" class="px-5 py-2 border-2 border-slate-900 rounded-full font-bold text-slate-700">Cancel</button>
+                    <button type="submit" class="btn-chunky-brown px-6 py-2 text-xs uppercase font-black">Assign Shift</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Update Grooming Stage -->
+    <div id="update-grooming-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border-4 border-slate-900">
+            <h3 id="groom-pet-name-display" class="font-black text-xl text-slate-900 mb-4 font-chunky">Advance Grooming Workflow Stage</h3>
+            <form onsubmit="event.preventDefault(); GroomingModule.submitStageUpdate();" class="space-y-4 text-xs">
+                <input type="hidden" id="groom-session-id">
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Target Workflow Stage</label>
+                    <select id="groom-stage-select" class="w-full p-3 border-2 border-slate-900 rounded-xl font-black text-[#FF5A27]">
+                        <option value="Checked-in">Checked-in</option>
+                        <option value="Bathing">Bathing</option>
+                        <option value="Styling">Styling</option>
+                        <option value="Ready for Pick-up">Ready for Pick-up (Triggers SMS/Push alert!)</option>
+                        <option value="Completed">Completed (Handed over to owner)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Coat Condition</label>
+                    <input type="text" id="groom-coat-condition" placeholder="e.g. Matted behind ears, silky coat..." class="w-full p-3 border-2 border-slate-900 rounded-xl font-medium">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Observations & Behavioral Notes</label>
+                    <textarea id="groom-notes" rows="2" placeholder="Behavioral notes during handling..." class="w-full p-3 border-2 border-slate-900 rounded-xl font-medium"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="GroomingModule.closeUpdateModal()" class="px-5 py-2 border-2 border-slate-900 rounded-full font-bold text-slate-700">Cancel</button>
+                    <button type="submit" class="btn-chunky-brown px-6 py-2 text-xs uppercase font-black">Update Stage & Alert</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/operations.js"></script>
+    <script src="/js/appointments.js"></script>
+    <script src="/js/pet_ehr.js"></script>
+    <script src="/js/inventory.js"></script>
+    <script src="/js/grooming.js"></script>
+    <script src="/js/admin.js"></script>
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>

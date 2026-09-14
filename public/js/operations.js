@@ -202,7 +202,9 @@ const OperationsModule = {
             this.closeAssignShiftModal();
             await this.loadShifts();
             await this.loadDashboardKPIs();
-            App.checkNotifications();
+            if (typeof App !== 'undefined' && typeof App.checkNotifications === 'function') {
+                App.checkNotifications();
+            }
         } catch (err) {
             App.showToast(`Error: ${err.message}`, 'danger');
         }

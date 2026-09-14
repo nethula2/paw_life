@@ -144,7 +144,9 @@ const GroomingModule = {
 
             this.closeUpdateModal();
             await this.loadQueue();
-            App.checkNotifications();
+            if (typeof App !== 'undefined' && typeof App.checkNotifications === 'function') {
+                App.checkNotifications();
+            }
         } catch (err) {
             App.showToast(`Error: ${err.message}`, 'danger');
         }

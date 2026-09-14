@@ -382,7 +382,15 @@ const DashboardApp = {
 window.App = {
     showToast: (msg, type) => DashboardApp.showToast(msg, type),
     switchTab: (tabId) => DashboardApp.switchView(tabId),
-    closeStaffPortal: () => { window.location.href = '/'; }
+    closeStaffPortal: () => { window.location.href = '/'; },
+    checkNotifications: () => {
+        if (typeof OperationsModule !== 'undefined' && typeof OperationsModule.loadOperationalAlerts === 'function') {
+            OperationsModule.loadOperationalAlerts();
+        }
+        if (typeof OperationsModule !== 'undefined' && typeof OperationsModule.loadDashboardKPIs === 'function') {
+            OperationsModule.loadDashboardKPIs();
+        }
+    }
 };
 
 document.addEventListener('DOMContentLoaded', () => {

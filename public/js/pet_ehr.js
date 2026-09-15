@@ -452,5 +452,75 @@ const PetEhrModule = {
     closePrescriptionModal() {
         const modal = document.getElementById('prescription-modal');
         if (modal) modal.classList.add('hidden');
+    },
+
+    async submitPetRegistration() {
+        try {
+            const name = (document.getElementById('reg-pet-name')?.value || document.getElementById('new-pet-name')?.value || '').trim();
+            const species = (document.getElementById('reg-species')?.value || document.getElementById('new-pet-species')?.value || 'Dog').trim();
+            const breed = (document.getElementById('reg-breed')?.value || document.getElementById('new-pet-breed')?.value || '').trim();
+            const gender = (document.getElementById('reg-gender')?.value || document.getElementById('new-pet-gender')?.value || 'Male').trim();
+            const microchip = (document.getElementById('reg-microchip')?.value || '').trim();
+            const ownerPhone = (document.getElementById('reg-owner-phone')?.value || '').trim();
+            const dob = (document.getElementById('reg-dob')?.value || document.getElementById('new-pet-dob')?.value || '').trim();
+            const allergies = (document.getElementById('reg-allergies')?.value || document.getElementById('new-pet-allergies')?.value || 'None').trim();
+
+            if (!name || !species || !breed) {
+                const toastFn = (typeof App !== 'undefined' && App.showToast) || (typeof DashboardApp !== 'undefined' && DashboardApp.showToast);
+                if (toastFn) toastFn('Please fill in mandatory fields: Pet Name, Species, and Breed.', 'danger');
+                return;
+            }
+
+            const payload = {
+                pet_name: name,
+                species: species,
+                breed: breed,
+                gender: gender,
+                microchip_no: microchip,
+                owner_phone: ownerPhone,
+                date_of_birth: dob,
+                allergies: allergies
+            };
+
+            const res = await fetch('/api/pets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to register pet profile');
+            }
+
+            const modal = document.getElementById('register-pet-modal');
+            if (modal) modal.classList.add('hidden');
+
+            // Clear input fields
+            ['reg-pet-name', 'reg-breed', 'reg-microchip', 'reg-owner-phone', 'reg-dob', 'reg-allergies',
+             'new-pet-name', 'new-pet-breed', 'new-pet-dob', 'new-pet-allergies'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+
+            const toastFn = (typeof App !== 'undefined' && App.showToast) || (typeof DashboardApp !== 'undefined' && DashboardApp.showToast);
+            if (toastFn) toastFn(data.message || 'Pet registered successfully!', 'success');
+
+            // Refresh patient search grid & public search
+            await this.searchPets();
+            await this.searchPublicPets('');
+
+            // If on dashboard, reload operational KPIs
+            if (typeof OperationsModule !== 'undefined' && typeof OperationsModule.loadDashboardKPIs === 'function') {
+                OperationsModule.loadDashboardKPIs();
+            }
+        } catch (err) {
+            const toastFn = (typeof App !== 'undefined' && App.showToast) || (typeof DashboardApp !== 'undefined' && DashboardApp.showToast);
+            if (toastFn) {
+                toastFn(`Error: ${err.message}`, 'danger');
+            } else {
+                alert(`Error: ${err.message}`);
+            }
+        }
     }
 };

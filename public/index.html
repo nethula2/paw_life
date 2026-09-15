@@ -1418,7 +1418,7 @@
     <div id="register-pet-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border-4 border-slate-900">
             <h3 class="font-black text-xl text-slate-900 mb-4 font-chunky">Register New Pet Profile</h3>
-            <form onsubmit="event.preventDefault(); const petName=document.getElementById('new-pet-name').value; const species=document.getElementById('new-pet-species').value; const breed=document.getElementById('new-pet-breed').value; const dob=document.getElementById('new-pet-dob').value; const gender=document.getElementById('new-pet-gender').value; const allergies=document.getElementById('new-pet-allergies').value; fetch('/api/pets', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pet_name:petName, species, breed, date_of_birth:dob, gender, allergies})}).then(r=>r.json()).then(d=>{if(d.success){App.showToast(d.message,'success'); document.getElementById('register-pet-modal').classList.add('hidden'); PetEhrModule.searchPets(); PetEhrModule.searchPublicPets('');}else{App.showToast(d.error,'danger');}});" class="space-y-3 text-xs">
+            <form onsubmit="event.preventDefault(); PetEhrModule.submitPetRegistration();" class="space-y-3 text-xs">
                 <div>
                     <label class="block font-bold text-slate-800 mb-1">Pet Name *</label>
                     <input type="text" id="new-pet-name" placeholder="e.g. Charlie" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold">

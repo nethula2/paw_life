@@ -131,21 +131,54 @@ public class PetEhrHandler implements HttpHandler {
         String species = (String) body.get("species");
         String breed = (String) body.get("breed");
         String dob = (String) body.get("date_of_birth");
-        String gender = (String) body.get("gender");
-        String chip = (String) body.getOrDefault("microchip_no", "MC-" + (int)(100000 + Math.random() * 900000));
+        String gender = (String) body.getOrDefault("gender", "Male");
+        String chip = (String) body.get("microchip_no");
+        if (chip == null || chip.trim().isEmpty()) {
+            chip = "MC-" + (int)(100000 + Math.random() * 900000);
+        }
         String allergies = (String) body.getOrDefault("allergies", "None");
 
-        if (name == null || species == null || breed == null || dob == null || gender == null) {
+        if (name == null || name.trim().isEmpty() || species == null || species.trim().isEmpty() || breed == null || breed.trim().isEmpty()) {
             Map<String, Object> res = new HashMap<>();
             res.put("success", false);
-            res.put("error", "Pet name, species, breed, date of birth, and gender are mandatory.");
+            res.put("error", "Pet name, species, and breed are mandatory fields.");
             HttpUtils.sendJson(exchange, 400, res);
             return;
         }
 
+        if (dob == null || dob.trim().isEmpty()) {
+            dob = LocalDate.now().minusYears(1).toString();
+        }
+
+        long ownerId = 1;
+        String ownerPhone = (String) body.get("owner_phone");
+        if (ownerPhone != null && !ownerPhone.trim().isEmpty()) {
+            ownerPhone = ownerPhone.trim();
+            Map<String, Object> existingOwner = Database.getFirst(
+                "SELECT po.owner_id FROM pet_owners po JOIN users u ON po.user_id = u.user_id WHERE u.phone_number = ? OR u.phone_number LIKE ?",
+                ownerPhone, "%" + ownerPhone + "%"
+            );
+            if (existingOwner != null && existingOwner.get("owner_id") != null) {
+                ownerId = HttpUtils.toLong(existingOwner.get("owner_id"), 1L);
+            } else {
+                String ownerName = (String) body.getOrDefault("owner_name", "Client (" + ownerPhone + ")");
+                long newUserId = Database.executeInsert(
+                    "INSERT INTO users (first_name, last_name, email, password, phone_number, role, status) " +
+                    "VALUES (?, 'Client', ?, 'password123', ?, 'Pet Owner', 'Active')",
+                    ownerName, "client." + System.currentTimeMillis() + "@pawlife.lk", ownerPhone
+                );
+                ownerId = Database.executeInsert(
+                    "INSERT INTO pet_owners (user_id, emergency_contact, preferred_contact_method) VALUES (?, ?, 'Phone')",
+                    newUserId, ownerPhone
+                );
+            }
+        } else if (body.get("owner_id") != null) {
+            ownerId = HttpUtils.toLong(body.get("owner_id"), 1L);
+        }
+
         long id = Database.executeInsert(
-            "INSERT INTO pets (owner_id, pet_name, species, breed, date_of_birth, gender, microchip_no, allergies) VALUES (1, ?, ?, ?, ?, ?, ?, ?)",
-            name, species, breed, dob, gender, chip, allergies
+            "INSERT INTO pets (owner_id, pet_name, species, breed, date_of_birth, gender, microchip_no, allergies) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            ownerId, name.trim(), species.trim(), breed.trim(), dob.trim(), gender.trim(), chip.trim(), allergies.trim()
         );
 
         Database.logAudit(2, "De Silva L.P.B (Veterinary EHR)", "PET_REGISTRATION", "Pet EHR",

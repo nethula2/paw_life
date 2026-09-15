@@ -9,6 +9,9 @@ const OperationsModule = {
         await this.loadDashboardKPIs();
         await this.loadOperationalAlerts();
         await this.loadShifts();
+        if (typeof AdminModule !== 'undefined' && typeof AdminModule.loadUsers === 'function') {
+            await AdminModule.loadUsers();
+        }
     },
 
     // UC-05 Step 1 & 2: Daily Operations Summary Dashboard
@@ -132,21 +135,32 @@ const OperationsModule = {
             // Populate modal staff dropdown
             const staffSelect = document.getElementById('shift-staff-select');
             if (staffSelect && data.available_staff) {
-                staffSelect.innerHTML = data.available_staff.map(st => `
-                    <option value="${st.user_id}">${st.name} (${st.role})</option>
-                `).join('');
+                if (data.available_staff.length === 0) {
+                    staffSelect.innerHTML = '<option value="">-- No active staff members available --</option>';
+                } else {
+                    staffSelect.innerHTML = '<option value="">-- Select Staff Member --</option>' + data.available_staff.map(st => `
+                        <option value="${st.user_id}">${st.name} (${st.role})</option>
+                    `).join('');
+                }
             }
         } catch (err) {
             console.error('Failed to load shifts:', err);
         }
     },
 
-    openAssignShiftModal() {
+    async openAssignShiftModal() {
         const modal = document.getElementById('assign-shift-modal');
         if (!modal) return;
+        const staffSelect = document.getElementById('shift-staff-select');
+        if (staffSelect && (!staffSelect.children || staffSelect.children.length === 0 || staffSelect.options.length <= 1)) {
+            await this.loadShifts();
+        }
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        document.getElementById('shift-date-input').value = tomorrow.toISOString().split('T')[0];
+        const dateInput = document.getElementById('shift-date-input');
+        if (dateInput && !dateInput.value) {
+            dateInput.value = tomorrow.toISOString().split('T')[0];
+        }
         modal.classList.remove('hidden');
     },
 
@@ -160,6 +174,17 @@ const OperationsModule = {
         const userId = document.getElementById('shift-staff-select')?.value;
         const shiftDate = document.getElementById('shift-date-input')?.value;
         const shiftType = document.getElementById('shift-type-select')?.value;
+
+        if (!userId) {
+            App.showToast('Please select a valid staff member.', 'warning');
+            return;
+        }
+
+        if (!shiftDate) {
+            App.showToast('Please select a shift date.', 'warning');
+            return;
+        }
+
         let startTime = '08:00:00';
         let endTime = '14:00:00';
 

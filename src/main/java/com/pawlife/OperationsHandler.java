@@ -113,14 +113,19 @@ public class OperationsHandler implements HttpHandler {
 
     private void handleGetShifts(HttpExchange exchange) throws Exception {
         List<Map<String, Object>> shifts = Database.query(
-            "SELECT s.*, u.first_name || ' ' || u.last_name AS staff_name, u.role " +
+            "SELECT s.*, u.first_name || ' ' || u.last_name AS staff_name, u.role, u.phone_number " +
             "FROM staff_shifts s " +
             "JOIN users u ON s.user_id = u.user_id " +
             "ORDER BY s.shift_date ASC, s.start_time ASC"
         );
+        List<Map<String, Object>> availableStaff = Database.query(
+            "SELECT user_id, first_name || ' ' || last_name AS name, role, phone_number, email " +
+            "FROM users WHERE role != 'Pet Owner' AND status = 'Active' ORDER BY first_name ASC"
+        );
         Map<String, Object> res = new HashMap<>();
         res.put("success", true);
         res.put("shifts", shifts);
+        res.put("available_staff", availableStaff);
         HttpUtils.sendJson(exchange, 200, res);
     }
 
@@ -132,7 +137,15 @@ public class OperationsHandler implements HttpHandler {
         String startTime = (String) body.getOrDefault("start_time", "08:00:00");
         String endTime = (String) body.getOrDefault("end_time", "14:00:00");
 
-        if (shiftDate == null) {
+        if (userId <= 0) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", false);
+            res.put("error", "Please select a valid staff member.");
+            HttpUtils.sendJson(exchange, 400, res);
+            return;
+        }
+
+        if (shiftDate == null || shiftDate.trim().isEmpty()) {
             Map<String, Object> res = new HashMap<>();
             res.put("success", false);
             res.put("error", "Shift date is required.");

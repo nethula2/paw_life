@@ -465,6 +465,10 @@ const PetEhrModule = {
             const dob = (document.getElementById('reg-dob')?.value || document.getElementById('new-pet-dob')?.value || '').trim();
             const allergies = (document.getElementById('reg-allergies')?.value || document.getElementById('new-pet-allergies')?.value || 'None').trim();
 
+            const ownerEmail = (document.getElementById('reg-owner-email')?.value || '').trim();
+            const ownerFname = (document.getElementById('reg-owner-fname')?.value || '').trim();
+            const ownerLname = (document.getElementById('reg-owner-lname')?.value || '').trim();
+
             if (!name || !species || !breed) {
                 const toastFn = (typeof App !== 'undefined' && App.showToast) || (typeof DashboardApp !== 'undefined' && DashboardApp.showToast);
                 if (toastFn) toastFn('Please fill in mandatory fields: Pet Name, Species, and Breed.', 'danger');
@@ -478,6 +482,9 @@ const PetEhrModule = {
                 gender: gender,
                 microchip_no: microchip,
                 owner_phone: ownerPhone,
+                owner_email: ownerEmail,
+                owner_fname: ownerFname,
+                owner_lname: ownerLname,
                 date_of_birth: dob,
                 allergies: allergies
             };
@@ -497,7 +504,7 @@ const PetEhrModule = {
             if (modal) modal.classList.add('hidden');
 
             // Clear input fields
-            ['reg-pet-name', 'reg-breed', 'reg-microchip', 'reg-owner-phone', 'reg-dob', 'reg-allergies',
+            ['reg-pet-name', 'reg-breed', 'reg-microchip', 'reg-owner-phone', 'reg-owner-email', 'reg-owner-fname', 'reg-owner-lname', 'reg-dob', 'reg-allergies',
              'new-pet-name', 'new-pet-breed', 'new-pet-dob', 'new-pet-allergies'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';

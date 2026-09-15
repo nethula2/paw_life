@@ -161,16 +161,46 @@ public class PetEhrHandler implements HttpHandler {
             if (existingOwner != null && existingOwner.get("owner_id") != null) {
                 ownerId = HttpUtils.toLong(existingOwner.get("owner_id"), 1L);
             } else {
-                String ownerName = (String) body.getOrDefault("owner_name", "Client (" + ownerPhone + ")");
-                long newUserId = Database.executeInsert(
-                    "INSERT INTO users (first_name, last_name, email, password, phone_number, role, status) " +
-                    "VALUES (?, 'Client', ?, 'password123', ?, 'Pet Owner', 'Active')",
-                    ownerName, "client." + System.currentTimeMillis() + "@pawlife.lk", ownerPhone
-                );
-                ownerId = Database.executeInsert(
-                    "INSERT INTO pet_owners (user_id, emergency_contact, preferred_contact_method) VALUES (?, ?, 'Phone')",
-                    newUserId, ownerPhone
-                );
+                String ownerFname = (String) body.get("owner_fname");
+                if (ownerFname == null || ownerFname.trim().isEmpty()) {
+                    ownerFname = "Client";
+                }
+                String ownerLname = (String) body.get("owner_lname");
+                if (ownerLname == null || ownerLname.trim().isEmpty()) {
+                    ownerLname = "Owner";
+                }
+                String ownerEmail = (String) body.get("owner_email");
+                if (ownerEmail == null || ownerEmail.trim().isEmpty()) {
+                    ownerEmail = "client." + System.currentTimeMillis() + "@pawlife.lk";
+                }
+
+                try {
+                    long newUserId = Database.executeInsert(
+                        "INSERT INTO users (first_name, last_name, email, password, phone_number, role, status) " +
+                        "VALUES (?, ?, ?, 'password123', ?, 'Pet Owner', 'Active')",
+                        ownerFname, ownerLname, ownerEmail, ownerPhone
+                    );
+                    ownerId = Database.executeInsert(
+                        "INSERT INTO pet_owners (user_id, emergency_contact, preferred_contact_method) VALUES (?, ?, 'Phone')",
+                        newUserId, ownerPhone
+                    );
+                } catch (Exception e) {
+                    // Fallback if email is already taken
+                    if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed")) {
+                        ownerEmail = "client." + System.currentTimeMillis() + "@pawlife.lk";
+                        long newUserId = Database.executeInsert(
+                            "INSERT INTO users (first_name, last_name, email, password, phone_number, role, status) " +
+                            "VALUES (?, ?, ?, 'password123', ?, 'Pet Owner', 'Active')",
+                            ownerFname, ownerLname, ownerEmail, ownerPhone
+                        );
+                        ownerId = Database.executeInsert(
+                            "INSERT INTO pet_owners (user_id, emergency_contact, preferred_contact_method) VALUES (?, ?, 'Phone')",
+                            newUserId, ownerPhone
+                        );
+                    } else {
+                        throw e;
+                    }
+                }
             }
         } else if (body.get("owner_id") != null) {
             ownerId = HttpUtils.toLong(body.get("owner_id"), 1L);

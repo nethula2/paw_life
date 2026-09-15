@@ -35,6 +35,12 @@ public class AdminHandler implements HttpHandler {
                 handleGetUsers(exchange);
             } else if (path.equals("/api/admin/users") && "POST".equalsIgnoreCase(method)) {
                 handleCreateUser(exchange);
+            } else if (path.matches("^/api/admin/users/\\d+/status$") && "PUT".equalsIgnoreCase(method)) {
+                handleUpdateUserStatus(exchange, path);
+            } else if (path.matches("^/api/admin/users/\\d+$") && "PUT".equalsIgnoreCase(method)) {
+                handleUpdateUser(exchange, path);
+            } else if (path.matches("^/api/admin/users/\\d+$") && "DELETE".equalsIgnoreCase(method)) {
+                handleDeleteUser(exchange, path);
             } else {
                 Map<String, Object> err = new HashMap<>();
                 err.put("success", false);
@@ -156,29 +162,245 @@ public class AdminHandler implements HttpHandler {
         String lName = (String) body.get("last_name");
         String email = (String) body.get("email");
         String pwd = (String) body.get("password");
+        if (pwd == null || pwd.trim().isEmpty()) {
+            pwd = "password123";
+        }
         String role = (String) body.get("role");
         String phone = (String) body.getOrDefault("phone_number", "");
+        String status = (String) body.getOrDefault("status", "Active");
 
-        if (fName == null || lName == null || email == null || pwd == null || role == null) {
+        if (fName == null || fName.trim().isEmpty() ||
+            lName == null || lName.trim().isEmpty() ||
+            email == null || email.trim().isEmpty() ||
+            role == null || role.trim().isEmpty()) {
             Map<String, Object> res = new HashMap<>();
             res.put("success", false);
-            res.put("error", "All mandatory user fields are required.");
+            res.put("error", "First name, last name, email, and role are required.");
             HttpUtils.sendJson(exchange, 400, res);
             return;
         }
 
+        // Email uniqueness check
+        Map<String, Object> existing = Database.getFirst("SELECT user_id FROM users WHERE LOWER(email) = ?", email.trim().toLowerCase());
+        if (existing != null) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", false);
+            res.put("error", "A user with email '" + email + "' already exists in the system.");
+            HttpUtils.sendJson(exchange, 409, res);
+            return;
+        }
+
         long newId = Database.executeInsert(
-            "INSERT INTO users (first_name, last_name, email, password, phone_number, role, status) VALUES (?, ?, ?, ?, ?, ?, 'Active')",
-            fName, lName, email, pwd, phone, role
+            "INSERT INTO users (first_name, last_name, email, password, phone_number, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            fName.trim(), lName.trim(), email.trim(), pwd.trim(), phone.trim(), role.trim(), status
         );
 
+        // Role specialization synchronization
+        if ("Veterinary Officer".equalsIgnoreCase(role)) {
+            Database.executeUpdate(
+                "INSERT INTO veterinarians (user_id, license_no, specialization) VALUES (?, ?, ?)",
+                newId, "SLVC-" + newId, "Veterinary General Medicine"
+            );
+        } else if ("Grooming Staff".equalsIgnoreCase(role)) {
+            Database.executeUpdate(
+                "INSERT INTO grooming_staff (user_id, skill_level) VALUES (?, 'Senior Specialist')",
+                newId
+            );
+        } else if ("Inventory Manager".equalsIgnoreCase(role)) {
+            Database.executeUpdate(
+                "INSERT INTO inventory_managers (user_id, clearance_code) VALUES (?, ?)",
+                newId, "INV-LVL" + newId
+            );
+        }
+
         Database.logAudit(1, "Sanvidu S.D.N (Admin)", "USER_CREATION", "System Administration",
-            "Created new user " + fName + " " + lName + " (" + email + ") with role: " + role);
+            "Created new staff user " + fName + " " + lName + " (" + email + ") with role: " + role);
 
         Map<String, Object> res = new HashMap<>();
         res.put("success", true);
         res.put("userId", newId);
-        res.put("message", "User '" + fName + " " + lName + "' created successfully.");
+        res.put("message", "Staff member '" + fName + " " + lName + "' created successfully.");
+        HttpUtils.sendJson(exchange, 200, res);
+    }
+
+    private void handleUpdateUser(HttpExchange exchange, String path) throws Exception {
+        String[] parts = path.split("/");
+        long userId = Long.parseLong(parts[4]); // /api/admin/users/{id}
+
+        Map<String, Object> user = Database.getFirst("SELECT * FROM users WHERE user_id = ?", userId);
+        if (user == null) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", false);
+            res.put("error", "User not found with ID " + userId);
+            HttpUtils.sendJson(exchange, 404, res);
+            return;
+        }
+
+        Map<String, Object> body = HttpUtils.readJsonBody(exchange);
+        String fName = (String) body.getOrDefault("first_name", user.get("first_name"));
+        String lName = (String) body.getOrDefault("last_name", user.get("last_name"));
+        String email = (String) body.getOrDefault("email", user.get("email"));
+        String phone = (String) body.getOrDefault("phone_number", user.get("phone_number"));
+        String role = (String) body.getOrDefault("role", user.get("role"));
+        String status = (String) body.getOrDefault("status", user.get("status"));
+        String newPassword = (String) body.get("password");
+
+        // Master Administrator Lock (User ID 1 = Sanvidu S.D.N)
+        if (userId == 1) {
+            if (role != null && !"Admin".equalsIgnoreCase(role)) {
+                Map<String, Object> res = new HashMap<>();
+                res.put("success", false);
+                res.put("error", "Security Exception: Master Administrator role is locked and cannot be demoted. Master Role Protection active.");
+                HttpUtils.sendJson(exchange, 403, res);
+                return;
+            }
+            if (status != null && !"Active".equalsIgnoreCase(status)) {
+                Map<String, Object> res = new HashMap<>();
+                res.put("success", false);
+                res.put("error", "Security Exception: Master Administrator account cannot be deactivated. Master Role Protection active.");
+                HttpUtils.sendJson(exchange, 403, res);
+                return;
+            }
+        }
+
+        // Email uniqueness check
+        if (email != null && !email.equalsIgnoreCase((String) user.get("email"))) {
+            Map<String, Object> conflict = Database.getFirst(
+                "SELECT user_id FROM users WHERE LOWER(email) = ? AND user_id != ?",
+                email.trim().toLowerCase(), userId
+            );
+            if (conflict != null) {
+                Map<String, Object> res = new HashMap<>();
+                res.put("success", false);
+                res.put("error", "The email address '" + email + "' is already in use by another user.");
+                HttpUtils.sendJson(exchange, 409, res);
+                return;
+            }
+        }
+
+        Database.executeUpdate(
+            "UPDATE users SET first_name = ?, last_name = ?, email = ?, phone_number = ?, role = ?, status = ? WHERE user_id = ?",
+            fName.trim(), lName.trim(), email.trim(), phone != null ? phone.trim() : "", role.trim(), status, userId
+        );
+
+        if (newPassword != null && !newPassword.trim().isEmpty()) {
+            Database.executeUpdate("UPDATE users SET password = ? WHERE user_id = ?", newPassword.trim(), userId);
+        }
+
+        // Role specialization synchronization
+        if ("Veterinary Officer".equalsIgnoreCase(role)) {
+            Map<String, Object> vet = Database.getFirst("SELECT vet_id FROM veterinarians WHERE user_id = ?", userId);
+            if (vet == null) {
+                Database.executeUpdate(
+                    "INSERT INTO veterinarians (user_id, license_no, specialization) VALUES (?, ?, ?)",
+                    userId, "SLVC-" + userId, "Veterinary General Medicine"
+                );
+            }
+        } else if ("Grooming Staff".equalsIgnoreCase(role)) {
+            Map<String, Object> gr = Database.getFirst("SELECT groomer_id FROM grooming_staff WHERE user_id = ?", userId);
+            if (gr == null) {
+                Database.executeUpdate(
+                    "INSERT INTO grooming_staff (user_id, skill_level) VALUES (?, 'Senior Specialist')",
+                    userId
+                );
+            }
+        } else if ("Inventory Manager".equalsIgnoreCase(role)) {
+            Map<String, Object> im = Database.getFirst("SELECT manager_id FROM inventory_managers WHERE user_id = ?", userId);
+            if (im == null) {
+                Database.executeUpdate(
+                    "INSERT INTO inventory_managers (user_id, clearance_code) VALUES (?, ?)",
+                    userId, "INV-LVL" + userId
+                );
+            }
+        }
+
+        Database.logAudit(1, "Sanvidu S.D.N (Admin)", "USER_UPDATE", "System Administration",
+            "Updated staff user #" + userId + " (" + fName + " " + lName + ", Role: " + role + ", Status: " + status + ")");
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("message", "Staff member '" + fName + " " + lName + "' updated successfully.");
+        HttpUtils.sendJson(exchange, 200, res);
+    }
+
+    private void handleUpdateUserStatus(HttpExchange exchange, String path) throws Exception {
+        String[] parts = path.split("/");
+        long userId = Long.parseLong(parts[4]); // /api/admin/users/{id}/status
+
+        Map<String, Object> body = HttpUtils.readJsonBody(exchange);
+        String newStatus = (String) body.get("status");
+        if (newStatus == null || (!newStatus.equals("Active") && !newStatus.equals("Inactive") && !newStatus.equals("Suspended"))) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", false);
+            res.put("error", "Invalid status value. Allowed: Active, Inactive, Suspended.");
+            HttpUtils.sendJson(exchange, 400, res);
+            return;
+        }
+
+        Map<String, Object> user = Database.getFirst("SELECT * FROM users WHERE user_id = ?", userId);
+        if (user == null) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", false);
+            res.put("error", "User not found with ID " + userId);
+            HttpUtils.sendJson(exchange, 404, res);
+            return;
+        }
+
+        if (userId == 1 && !"Active".equalsIgnoreCase(newStatus)) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", false);
+            res.put("error", "Security Exception: Master Administrator (Sanvidu S.D.N) cannot be deactivated. Master Role Protection active.");
+            HttpUtils.sendJson(exchange, 403, res);
+            return;
+        }
+
+        Database.executeUpdate("UPDATE users SET status = ? WHERE user_id = ?", newStatus, userId);
+        Database.logAudit(1, "Sanvidu S.D.N (Admin)", "USER_STATUS_CHANGE", "System Administration",
+            "Changed user #" + userId + " (" + user.get("first_name") + " " + user.get("last_name") + ") status to: " + newStatus);
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("message", "User #" + userId + " status updated to " + newStatus + ".");
+        HttpUtils.sendJson(exchange, 200, res);
+    }
+
+    private void handleDeleteUser(HttpExchange exchange, String path) throws Exception {
+        String[] parts = path.split("/");
+        long userId = Long.parseLong(parts[4]); // /api/admin/users/{id}
+
+        if (userId == 1) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", false);
+            res.put("error", "Security Exception: Master Administrator account (Sanvidu S.D.N) cannot be deleted. Master Role Protection is locked.");
+            HttpUtils.sendJson(exchange, 403, res);
+            return;
+        }
+
+        Map<String, Object> user = Database.getFirst("SELECT * FROM users WHERE user_id = ?", userId);
+        if (user == null) {
+            Map<String, Object> res = new HashMap<>();
+            res.put("success", false);
+            res.put("error", "User not found with ID " + userId);
+            HttpUtils.sendJson(exchange, 404, res);
+            return;
+        }
+
+        // Clean up linked dependencies
+        Database.executeUpdate("DELETE FROM staff_shifts WHERE user_id = ?", userId);
+        Database.executeUpdate("UPDATE appointments SET assigned_staff_id = NULL WHERE assigned_staff_id = ?", userId);
+        Database.executeUpdate("DELETE FROM veterinarians WHERE user_id = ?", userId);
+        Database.executeUpdate("DELETE FROM grooming_staff WHERE user_id = ?", userId);
+        Database.executeUpdate("DELETE FROM inventory_managers WHERE user_id = ?", userId);
+        Database.executeUpdate("DELETE FROM pet_owners WHERE user_id = ?", userId);
+        Database.executeUpdate("DELETE FROM users WHERE user_id = ?", userId);
+
+        String fullName = user.get("first_name") + " " + user.get("last_name");
+        Database.logAudit(1, "Sanvidu S.D.N (Admin)", "USER_DELETE", "System Administration",
+            "Permanently removed staff account #" + userId + " (" + fullName + ", Role: " + user.get("role") + ")");
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("message", "Staff account '" + fullName + "' was successfully removed from the system.");
         HttpUtils.sendJson(exchange, 200, res);
     }
 

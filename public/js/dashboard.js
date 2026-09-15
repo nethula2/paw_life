@@ -288,6 +288,9 @@ const DashboardApp = {
             await GroomingModule.init();
         } else if (viewId === 'operations') {
             await OperationsModule.init();
+            if (typeof AdminModule !== 'undefined' && typeof AdminModule.loadUsers === 'function') {
+                await AdminModule.loadUsers();
+            }
         } else if (viewId === 'admin') {
             await AdminModule.init();
         }

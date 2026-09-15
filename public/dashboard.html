@@ -701,9 +701,14 @@
                             </div>
                             <p class="text-xs text-slate-500 font-medium mt-1">Real-time clinic throughput, operational alert center, and weekly duty shift schedules.</p>
                         </div>
-                        <button onclick="OperationsModule.openAssignShiftModal()" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase tracking-wider mt-4 sm:mt-0">
-                            <i class="fas fa-calendar-plus mr-1"></i>Allocate Shift
-                        </button>
+                        <div class="flex flex-wrap gap-2 mt-4 sm:mt-0">
+                            <button onclick="AdminModule.openAddStaffModal()" class="px-5 py-2.5 bg-white text-slate-900 font-black text-xs uppercase rounded-full border-2 border-slate-900 shadow-[3px_3px_0px_#000] hover:bg-amber-50 transition">
+                                <i class="fas fa-user-plus mr-1 text-[#FF5A27]"></i>Add Staff Member
+                            </button>
+                            <button onclick="OperationsModule.openAssignShiftModal()" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase tracking-wider">
+                                <i class="fas fa-calendar-plus mr-1"></i>Allocate Shift
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Shift Roster & Staff on Duty -->
@@ -728,6 +733,42 @@
                         <div class="chunky-panel p-6">
                             <h3 class="font-black text-base text-slate-900 mb-3 font-chunky">Staff On Duty (Today)</h3>
                             <div id="op-staff-duty-list" class="space-y-2.5"></div>
+                        </div>
+                    </div>
+
+                    <!-- Clinic Staff & Personnel Management Roster -->
+                    <div class="chunky-panel p-6">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                            <div>
+                                <h3 class="font-black text-base text-slate-900 font-chunky">Clinic Personnel & Staff Directory</h3>
+                                <p class="text-xs text-slate-500 font-medium">Authorized clinic staff, veterinary officers, groomers, centre managers, and inventory personnel.</p>
+                            </div>
+                            <div class="flex items-center space-x-3 w-full sm:w-auto">
+                                <input type="text" id="staff-search-input" oninput="AdminModule.filterStaffTable()" placeholder="Search staff..." class="p-2 border-2 border-slate-900 rounded-xl text-xs font-bold w-full sm:w-56 bg-slate-50">
+                                <select id="staff-role-filter" onchange="AdminModule.filterStaffTable()" class="p-2 border-2 border-slate-900 rounded-xl text-xs font-bold bg-white">
+                                    <option value="ALL">All Roles</option>
+                                    <option value="Veterinary Officer">Veterinary Officer</option>
+                                    <option value="Grooming Staff">Grooming Staff</option>
+                                    <option value="Centre Manager">Centre Manager</option>
+                                    <option value="Inventory Manager">Inventory Manager</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-amber-50 text-slate-800 font-bold border-b-2 border-slate-900">
+                                        <th class="p-3">ID</th>
+                                        <th class="p-3">Staff Member</th>
+                                        <th class="p-3">Role</th>
+                                        <th class="p-3">Contact</th>
+                                        <th class="p-3">Status</th>
+                                        <th class="p-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staff-table-tbody" class="divide-y divide-slate-100"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -811,6 +852,35 @@
                                     </tr>
                                 </thead>
                                 <tbody id="audit-logs-tbody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- System User Accounts Directory -->
+                    <div class="chunky-panel p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="font-black text-base text-slate-900 font-chunky">System User Accounts Directory</h3>
+                                <p class="text-xs text-slate-500 font-medium">All registered system user identities and security clearance statuses</p>
+                            </div>
+                            <button onclick="AdminModule.openAddStaffModal()" class="btn-chunky-brown px-4 py-2 text-xs uppercase font-black">
+                                <i class="fas fa-plus mr-1"></i>New User
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-amber-50 text-slate-800 font-bold border-b-2 border-slate-900">
+                                        <th class="p-3">ID</th>
+                                        <th class="p-3">Name</th>
+                                        <th class="p-3">Email</th>
+                                        <th class="p-3">Phone</th>
+                                        <th class="p-3">Role</th>
+                                        <th class="p-3">Status</th>
+                                        <th class="p-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-users-tbody" class="divide-y divide-slate-100"></tbody>
                             </table>
                         </div>
                     </div>
@@ -1129,28 +1199,152 @@
 
     <!-- Modal: Allocate Staff Shift -->
     <div id="assign-shift-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border-4 border-slate-900">
-            <h3 class="font-black text-xl text-slate-900 mb-4 font-chunky">Allocate Staff Shift</h3>
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border-4 border-slate-900 shadow-[8px_8px_0px_#000]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-black text-xl text-slate-900 font-chunky">Allocate Staff Shift</h3>
+                <button type="button" onclick="OperationsModule.closeAssignShiftModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">✕</button>
+            </div>
             <form onsubmit="event.preventDefault(); OperationsModule.submitShiftAssignment();" class="space-y-4 text-xs">
                 <div>
-                    <label class="block font-bold text-slate-800 mb-1">Staff Member</label>
-                    <select id="shift-staff-select" class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold"></select>
+                    <label class="block font-bold text-slate-800 mb-1">Staff Member *</label>
+                    <select id="shift-staff-select" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold bg-white"></select>
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-800 mb-1">Shift Date</label>
-                    <input type="date" id="shift-date-input" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold">
+                    <label class="block font-bold text-slate-800 mb-1">Shift Date *</label>
+                    <input type="date" id="shift-date-input" required class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold bg-white">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-800 mb-1">Shift Type</label>
-                    <select id="shift-type-select" class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold">
+                    <label class="block font-bold text-slate-800 mb-1">Shift Type *</label>
+                    <select id="shift-type-select" class="w-full p-3 border-2 border-slate-900 rounded-xl font-bold bg-white">
                         <option value="Morning">Morning Shift (08:00 AM - 02:00 PM)</option>
                         <option value="Evening">Evening Shift (02:00 PM - 08:00 PM)</option>
                         <option value="Full Day">Full Day Shift (09:00 AM - 05:00 PM)</option>
                     </select>
                 </div>
                 <div class="flex justify-end space-x-2 pt-2">
-                    <button type="button" onclick="OperationsModule.closeAssignShiftModal()" class="px-5 py-2 border-2 border-slate-900 rounded-full font-bold text-slate-700">Cancel</button>
+                    <button type="button" onclick="OperationsModule.closeAssignShiftModal()" class="px-5 py-2 border-2 border-slate-900 rounded-full font-bold text-slate-700 hover:bg-slate-100">Cancel</button>
                     <button type="submit" class="btn-chunky-brown px-6 py-2 text-xs uppercase font-black">Assign Shift</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add New Staff Member -->
+    <div id="add-staff-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 border-4 border-slate-900 shadow-[8px_8px_0px_#000]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-black text-xl text-slate-900 font-chunky">Add New Clinic Staff Member</h3>
+                <button type="button" onclick="AdminModule.closeAddStaffModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">✕</button>
+            </div>
+            <form onsubmit="event.preventDefault(); AdminModule.submitAddStaff();" class="space-y-4 text-xs">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">First Name *</label>
+                        <input type="text" id="add-staff-fname" required placeholder="e.g. Kasun" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Last Name *</label>
+                        <input type="text" id="add-staff-lname" required placeholder="e.g. Bandara" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Clinic Role *</label>
+                        <select id="add-staff-role" required class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                            <option value="Veterinary Officer">Veterinary Officer</option>
+                            <option value="Grooming Staff">Grooming Staff</option>
+                            <option value="Centre Manager">Centre Manager</option>
+                            <option value="Inventory Manager">Inventory Manager</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Status *</label>
+                        <select id="add-staff-status" required class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Email Address *</label>
+                    <input type="email" id="add-staff-email" required placeholder="e.g. kasun.vet@pawlife.lk" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Phone Number</label>
+                    <input type="tel" id="add-staff-phone" placeholder="e.g. +94 77 123 9999" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Password</label>
+                    <input type="password" id="add-staff-pwd" placeholder="Default: password123 (if left blank)" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                    <p class="text-[10px] text-slate-500 mt-0.5 font-medium">Initial credentials for this staff member to sign in to PawLife.</p>
+                </div>
+                <div class="flex justify-end space-x-3 pt-3">
+                    <button type="button" onclick="AdminModule.closeAddStaffModal()" class="px-5 py-2.5 border-2 border-slate-900 rounded-full font-bold text-slate-700 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase font-black">Add Staff Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Staff Member -->
+    <div id="edit-staff-modal" class="hidden fixed inset-0 z-50 overflow-y-auto modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8 border-4 border-slate-900 shadow-[8px_8px_0px_#000]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-black text-xl text-slate-900 font-chunky">Edit Staff Member Details</h3>
+                <button type="button" onclick="AdminModule.closeEditStaffModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">✕</button>
+            </div>
+            <form onsubmit="event.preventDefault(); AdminModule.submitEditStaff();" class="space-y-4 text-xs">
+                <input type="hidden" id="edit-staff-id">
+                <div id="edit-staff-master-warning" class="hidden p-3 bg-amber-50 border-2 border-amber-300 rounded-xl text-amber-900 font-medium">
+                    <i class="fas fa-shield-alt mr-1 text-amber-700"></i>
+                    <strong>Master Administrator Account:</strong> Role and active status are locked by system security policy.
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">First Name *</label>
+                        <input type="text" id="edit-staff-fname" required class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Last Name *</label>
+                        <input type="text" id="edit-staff-lname" required class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Clinic Role *</label>
+                        <select id="edit-staff-role" required class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                            <option value="Veterinary Officer">Veterinary Officer</option>
+                            <option value="Grooming Staff">Grooming Staff</option>
+                            <option value="Centre Manager">Centre Manager</option>
+                            <option value="Inventory Manager">Inventory Manager</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Status *</label>
+                        <select id="edit-staff-status" required class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Suspended">Suspended</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Email Address *</label>
+                    <input type="email" id="edit-staff-email" required class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Phone Number</label>
+                    <input type="tel" id="edit-staff-phone" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1">Change Password</label>
+                    <input type="password" id="edit-staff-pwd" placeholder="Leave blank to keep existing password" class="w-full p-3 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold">
+                </div>
+                <div class="flex justify-end space-x-3 pt-3">
+                    <button type="button" onclick="AdminModule.closeEditStaffModal()" class="px-5 py-2.5 border-2 border-slate-900 rounded-full font-bold text-slate-700 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="btn-chunky-brown px-6 py-2.5 text-xs uppercase font-black">Save Changes</button>
                 </div>
             </form>
         </div>

@@ -30,3 +30,11 @@ eer_diagram.bmp
 Thumbs.db
 [Dd]esktop.ini
 .DS_Store
+
+# Local Maven & Scripts
+.maven/
+*.bak
+*.ps1
+test_sql.js
+images*.jpg
+images (*).jpg

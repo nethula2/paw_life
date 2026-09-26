@@ -1,137 +1,78 @@
 package com.pawlife;
 
-import java.sql.*;
-import java.util.*;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.stereotype.Component;
 
-public class Database {
-    public static final String MYSQL_URL = "jdbc:mysql://127.0.0.1:3306/paw_life?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-    public static final String MYSQL_USER = "root";
-    public static final String MYSQL_PASSWORD = "nethula@2005";
-    public static final String SQLITE_URL = "jdbc:sqlite:database/pawlife.db";
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.util.List;
+import java.util.Map;
 
-    private static boolean useMySQL = true;
+@Component
+public class Database implements ApplicationContextAware {
 
-    static {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            try (Connection conn = DriverManager.getConnection(MYSQL_URL, MYSQL_USER, MYSQL_PASSWORD)) {
-                System.out.println("✅ [Database] Successfully connected to MySQL Server (127.0.0.1:3306/paw_life) for MySQL Workbench.");
-                useMySQL = true;
-            } catch (SQLException e) {
-                System.err.println("⚠️ MySQL connection failed, falling back to SQLite: " + e.getMessage());
-                useMySQL = false;
-            }
-        } catch (ClassNotFoundException e) {
-            System.err.println("MySQL Driver not found, using SQLite: " + e.getMessage());
-            useMySQL = false;
-        }
+    private static ApplicationContext ctx;
+    private static JdbcTemplate jdbcTemplate;
 
-        if (!useMySQL) {
-            try {
-                Class.forName("org.sqlite.JDBC");
-                System.out.println("✅ [Database] Connected to SQLite database: database/pawlife.db");
-            } catch (ClassNotFoundException e) {
-                System.err.println("SQLite JDBC Driver not found: " + e.getMessage());
-            }
-        }
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        Database.ctx = applicationContext;
+        Database.jdbcTemplate = applicationContext.getBean(JdbcTemplate.class);
     }
 
-    public static boolean isUsingMySQL() {
-        return useMySQL;
-    }
-
-    public static Connection getConnection() throws SQLException {
-        if (useMySQL) {
-            Connection conn = DriverManager.getConnection(MYSQL_URL, MYSQL_USER, MYSQL_PASSWORD);
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute("SET SESSION sql_mode = 'PIPES_AS_CONCAT,STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION';");
-            }
-            return conn;
-        } else {
-            Connection conn = DriverManager.getConnection(SQLITE_URL);
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute("PRAGMA foreign_keys = ON;");
-            }
-            return conn;
+    private static JdbcTemplate getJdbcTemplate() {
+        if (jdbcTemplate != null) return jdbcTemplate;
+        if (ctx != null) {
+            jdbcTemplate = ctx.getBean(JdbcTemplate.class);
+            return jdbcTemplate;
         }
+        throw new IllegalStateException("Database component not initialized by Spring yet!");
     }
 
-    public static List<Map<String, Object>> query(String sql, Object... params) throws SQLException {
-        List<Map<String, Object>> results = new ArrayList<>();
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            for (int i = 0; i < params.length; i++) {
-                ps.setObject(i + 1, params[i]);
-            }
-            try (ResultSet rs = ps.executeQuery()) {
-                ResultSetMetaData meta = rs.getMetaData();
-                int cols = meta.getColumnCount();
-                while (rs.next()) {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    for (int i = 1; i <= cols; i++) {
-                        Object val = rs.getObject(i);
-                        if (val instanceof java.sql.Date || val instanceof java.sql.Time || val instanceof java.sql.Timestamp || val instanceof java.time.temporal.Temporal) {
-                            val = val.toString();
-                        }
-                        row.put(meta.getColumnLabel(i), val);
-                    }
-                    results.add(row);
-                }
-            }
-        }
-        return results;
+    public static List<Map<String, Object>> query(String sql, Object... params) {
+        return getJdbcTemplate().queryForList(sql, params);
     }
 
-    public static Map<String, Object> getFirst(String sql, Object... params) throws SQLException {
+    public static Map<String, Object> getFirst(String sql, Object... params) {
         List<Map<String, Object>> list = query(sql, params);
         return list.isEmpty() ? null : list.get(0);
     }
 
-    public static int executeUpdate(String sql, Object... params) throws SQLException {
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            for (int i = 0; i < params.length; i++) {
-                ps.setObject(i + 1, params[i]);
-            }
-            return ps.executeUpdate();
-        }
+    public static int executeUpdate(String sql, Object... params) {
+        return getJdbcTemplate().update(sql, params);
     }
 
-    public static long executeInsert(String sql, Object... params) throws SQLException {
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+    public static long executeInsert(String sql, Object... params) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        getJdbcTemplate().update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             for (int i = 0; i < params.length; i++) {
                 ps.setObject(i + 1, params[i]);
             }
-            ps.executeUpdate();
-            try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) {
-                    return rs.getLong(1);
-                }
-            }
+            return ps;
+        }, keyHolder);
+
+        if (keyHolder.getKey() != null) {
+            return keyHolder.getKey().longValue();
         }
         return -1;
     }
 
-    public static void logAudit(int userId, String userName, String action, String moduleName, String details) {
-        try {
-            executeInsert(
-                "INSERT INTO audit_logs (user_id, user_name, action, module_name, details, timestamp) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-                userId, userName, action, moduleName, details
-            );
-        } catch (Exception e) {
-            System.err.println("Failed to write audit log: " + e.getMessage());
-        }
+    public static void logAudit(long userId, String username, String actionType, String module, String desc) {
+        executeUpdate(
+            "INSERT INTO audit_logs (user_id, user_name, action, module_name, details) VALUES (?, ?, ?, ?, ?)",
+            userId, username, actionType, module, desc
+        );
     }
 
-    public static void addNotification(int userId, String message, String type) {
-        try {
-            executeInsert(
-                "INSERT INTO notifications (user_id, message, notification_type, is_read, date_created) VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)",
-                userId, message, type
-            );
-        } catch (Exception e) {
-            System.err.println("Failed to insert notification: " + e.getMessage());
-        }
+    public static void createNotification(int userId, String message, String type) {
+        executeUpdate(
+            "INSERT INTO notifications (user_id, message, notification_type, is_read) VALUES (?, ?, ?, 0)",
+            userId, message, type
+        );
     }
 }

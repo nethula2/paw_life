@@ -18,7 +18,8 @@
 
 ## Quick Start Instructions
 
-### 1. Run .\run_java_server.bat on vs code and open this via the browser - http://localhost:3000 
+### 1. Run `.\run_springboot.ps1` in PowerShell (or `mvn spring-boot:run`)
+### 2. Open your browser and navigate to: http://localhost:3000 
 
 ---
 

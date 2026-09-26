@@ -25,30 +25,6 @@ public class ReviewController {
                 "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
                 ")"
             );
-
-            Map<String, Object> count = Database.getFirst("SELECT COUNT(*) AS c FROM reviews");
-            if (count == null || ((Number) count.get("c")).intValue() == 0) {
-                Database.executeInsert(
-                    "INSERT INTO reviews (customer_name, pet_name, service_type, rating, review_text) VALUES (?, ?, ?, ?, ?)",
-                    "Kavinda Perera", "Barnaby", "Full Luxury Bath & Coat Styling", 5,
-                    "Barnaby looked absolutely gorgeous after his grooming spa session! The coat blowout and blueberry scrub smelled amazing. Outstanding clinic care."
-                );
-                Database.executeInsert(
-                    "INSERT INTO reviews (customer_name, pet_name, service_type, rating, review_text) VALUES (?, ?, ?, ?, ?)",
-                    "Shenali Fernando", "Bella", "Veterinary Care & Wellness Exam", 5,
-                    "Dr. Kasun was so patient and gentle with Bella during her checkup. The clinical advice and health record was explained thoroughly."
-                );
-                Database.executeInsert(
-                    "INSERT INTO reviews (customer_name, pet_name, service_type, rating, review_text) VALUES (?, ?, ?, ?, ?)",
-                    "Marcus Vance", "Max", "Vaccination & Dental Care", 5,
-                    "Pristine hygiene, prompt scheduling without any waiting delays, and world-class veterinarians. Best pet hospital in the country."
-                );
-                Database.executeInsert(
-                    "INSERT INTO reviews (customer_name, pet_name, service_type, rating, review_text) VALUES (?, ?, ?, ?, ?)",
-                    "Nimalka Jayasuriya", "Milo", "Express Hygiene & Grooming", 5,
-                    "Love the live care tracker and friendly front desk staff! Milo is usually very anxious during grooming, but here he was happy and relaxed."
-                );
-            }
         } catch (Exception e) {
             System.err.println("Failed to initialize reviews table: " + e.getMessage());
         }
@@ -69,7 +45,7 @@ public class ReviewController {
                 starCount.put(rating, starCount.getOrDefault(rating, 0) + 1);
             }
 
-            double avg = reviews.isEmpty() ? 5.0 : Math.round((totalStars / reviews.size()) * 10.0) / 10.0;
+            double avg = reviews.isEmpty() ? 0.0 : Math.round((totalStars / reviews.size()) * 10.0) / 10.0;
 
             Map<String, Object> res = new HashMap<>();
             res.put("success", true);
@@ -79,6 +55,26 @@ public class ReviewController {
             res.put("breakdown", starCount);
 
             return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteReview(@PathVariable("id") long id) {
+        try {
+            int affected = Database.executeUpdate("DELETE FROM reviews WHERE review_id = ?", id);
+            return ResponseEntity.ok(Map.of("success", true, "deleted", affected > 0));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping
+    public ResponseEntity<?> clearAllReviews() {
+        try {
+            int affected = Database.executeUpdate("DELETE FROM reviews");
+            return ResponseEntity.ok(Map.of("success", true, "message", "All reviews cleared", "count", affected));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("success", false, "error", e.getMessage()));
         }

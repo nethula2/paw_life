@@ -22,7 +22,7 @@ const ReviewsModule = {
 
             const avgEl = document.getElementById('reviews-avg-rating');
             const countEl = document.getElementById('reviews-total-count');
-            if (avgEl) avgEl.textContent = Number(data.average_rating || 5.0).toFixed(1);
+            if (avgEl) avgEl.textContent = (data.total_reviews === 0) ? '0.0' : Number(data.average_rating || 0).toFixed(1);
             if (countEl) countEl.textContent = data.total_reviews || 0;
 
             const reviews = data.reviews || [];

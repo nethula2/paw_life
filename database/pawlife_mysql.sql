@@ -76,6 +76,8 @@ CREATE TABLE `appointments` (
     `appointment_id` INT AUTO_INCREMENT PRIMARY KEY,
     `pet_id` INT NOT NULL,
     `owner_id` INT NOT NULL,
+    `customer_name` VARCHAR(100),
+    `pet_name` VARCHAR(60),
     `service_type` VARCHAR(40) NOT NULL,
     `booking_date` DATE NOT NULL,
     `time_slot` VARCHAR(30) NOT NULL,
@@ -332,12 +334,12 @@ INSERT INTO `grooming_services` (`service_id`, `service_name`, `category`, `pric
 (4, 'Express Hygiene & Nail Trim', 'Basic Grooming', 1800.00, 25, 'Ear cleaning, paw pad shaving, sanitary trim, and precision nail clipping/grinding.');
 
 -- Appointments
-INSERT INTO `appointments` (`appointment_id`, `pet_id`, `owner_id`, `service_type`, `booking_date`, `time_slot`, `assigned_staff_id`, `status`, `notes`) VALUES
-(1, 1, 1, 'Veterinary Care', '2026-09-14', '09:00 AM - 09:30 AM', 2, 'Confirmed', 'Routine physical examination and ear redness check'),
-(2, 3, 2, 'Grooming', '2026-09-14', '10:00 AM - 11:00 AM', 6, 'In Progress', 'Persian breed full scissor styling and skin check'),
-(3, 2, 1, 'Vaccination', '2026-09-15', '11:00 AM - 11:30 AM', 3, 'Booked', 'Annual booster rabies and DHPP vaccination'),
-(4, 5, 3, 'Grooming', '2026-09-15', '02:00 PM - 03:00 PM', 6, 'Booked', 'De-shedding package for German Shepherd'),
-(5, 4, 2, 'Veterinary Care', '2026-09-12', '03:30 PM - 04:00 PM', 2, 'Completed', 'Appetite check and mild eye discharge treatment');
+INSERT INTO `appointments` (`appointment_id`, `pet_id`, `owner_id`, `customer_name`, `pet_name`, `service_type`, `booking_date`, `time_slot`, `assigned_staff_id`, `status`, `notes`) VALUES
+(1, 1, 1, 'Tharushi Silva', 'Buddy', 'Veterinary Care', '2026-09-14', '09:00 AM - 09:30 AM', 2, 'Confirmed', 'Routine physical examination and ear redness check'),
+(2, 3, 2, 'Nadeesha Perera', 'Bella', 'Grooming', '2026-09-14', '10:00 AM - 11:00 AM', 6, 'In Progress', 'Persian breed full scissor styling and skin check'),
+(3, 2, 1, 'Tharushi Silva', 'Milo', 'Vaccination', '2026-09-15', '11:00 AM - 11:30 AM', 3, 'Booked', 'Annual booster rabies and DHPP vaccination'),
+(4, 5, 3, 'Kamal Perera', 'Rocky', 'Grooming', '2026-09-15', '02:00 PM - 03:00 PM', 6, 'Booked', 'De-shedding package for German Shepherd'),
+(5, 4, 2, 'Nadeesha Perera', 'Luna', 'Veterinary Care', '2026-09-12', '03:30 PM - 04:00 PM', 2, 'Completed', 'Appetite check and mild eye discharge treatment');
 
 -- Payments
 INSERT INTO `payments` (`payment_id`, `appointment_id`, `amount`, `method`, `payment_date`, `status`) VALUES

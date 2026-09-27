@@ -604,9 +604,9 @@
                     <i class="fas fa-shield-alt text-[#FF5A27]"></i>
                     <span>ENTERPRISE VETOPS ACCESS</span>
                 </div>
-                <h3 class="text-2xl font-black text-slate-900 font-chunky">Administrator Sign In</h3>
+                <h3 class="text-2xl font-black text-slate-900 font-chunky">Staff & Administrator Sign In</h3>
                 <p class="text-xs text-slate-500 font-medium mt-1">
-                    Enter your administrative credentials to access hospital management, clinical EHR, and BI analytics.
+                    Enter your staff ID or work email and password to access your clinic workspace.
                 </p>
             </div>
 
@@ -619,7 +619,7 @@
                     <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider mb-1.5">
                         <i class="fas fa-id-badge text-[#FF5A27] mr-1"></i>Staff ID or Work Email
                     </label>
-                    <input type="text" id="home-admin-username" value="STF-001" placeholder="e.g. STF-001, STF-002, or email" required
+                    <input type="text" id="home-admin-username" value="" placeholder="e.g. STF-001, STF-002, or work email" required
                         class="w-full text-xs p-3.5 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold focus:bg-white focus:outline-none">
                 </div>
 
@@ -627,7 +627,7 @@
                     <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider mb-1.5">
                         <i class="fas fa-key text-amber-500 mr-1"></i>Password
                     </label>
-                    <input type="password" id="home-admin-password" value="password123" placeholder="••••••••" required
+                    <input type="password" id="home-admin-password" value="" placeholder="••••••••" required
                         class="w-full text-xs p-3.5 border-2 border-slate-900 rounded-xl bg-slate-50 font-bold focus:bg-white focus:outline-none">
                 </div>
 
@@ -638,17 +638,6 @@
                     </button>
                 </div>
             </form>
-
-            <!-- Quick Autofill for Viva & Demo -->
-            <div class="mt-6 pt-5 border-t-2 border-slate-100 text-center space-y-2.5">
-                <button type="button" onclick="App.autofillHomeAdmin()" class="w-full py-2.5 px-4 text-xs font-black bg-amber-100 hover:bg-amber-200 border-2 border-slate-900 rounded-xl transition text-slate-800 flex items-center justify-center space-x-2 cursor-pointer shadow-[2px_2px_0px_#000]">
-                    <i class="fas fa-magic text-[#FF5A27]"></i>
-                    <span>One-Click Autofill Admin (Sanvidu)</span>
-                </button>
-                <div class="text-[11px] text-slate-400 font-medium">
-                    Master Admin: <span class="font-mono text-slate-600 font-bold">admin</span> / <span class="font-mono text-slate-600 font-bold">password123</span>
-                </div>
-            </div>
         </div>
     </div>
 

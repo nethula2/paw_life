@@ -397,10 +397,10 @@ public class AdminController {
             }
 
             String role = (String) user.get("role");
-            if (!"Admin".equalsIgnoreCase(role)) {
+            if ("Pet Owner".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(403).body(Map.of(
                     "success", false, 
-                    "error", "Access Denied: Only system Administrators are authorized to access the Admin Dashboard. Staff accounts (" + role + ") do not have administrative clearance."
+                    "error", "Access Denied: Pet Owners should use the Customer Portal to log in."
                 ));
             }
 

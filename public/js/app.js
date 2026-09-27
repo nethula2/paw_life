@@ -54,12 +54,7 @@ const App = {
     },
 
     autofillHomeAdmin() {
-        const u = document.getElementById('home-admin-username');
-        const p = document.getElementById('home-admin-password');
-        if (u) u.value = 'sanvidu.admin@pawlife.lk';
-        if (p) p.value = 'password123';
-        const alertBox = document.getElementById('home-auth-error-alert');
-        if (alertBox) alertBox.classList.add('hidden');
+        // Master admin details completely purged
     },
 
     async submitAdminLogin(event) {
@@ -74,7 +69,7 @@ const App = {
 
         if (!username || !password) {
             if (alertBox) {
-                alertBox.textContent = 'Please provide both administrator email/username and password.';
+                alertBox.textContent = 'Please provide both staff email/username and password.';
                 alertBox.classList.remove('hidden');
             }
             return;
@@ -82,7 +77,7 @@ const App = {
 
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Verifying Administrator Clearance...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Verifying Staff Credentials...';
         }
         if (alertBox) alertBox.classList.add('hidden');
 
@@ -97,7 +92,7 @@ const App = {
 
             if (!data.success) {
                 if (alertBox) {
-                    alertBox.textContent = data.error || 'Authentication failed. Please verify admin credentials.';
+                    alertBox.textContent = data.error || 'Authentication failed. Please verify your staff credentials.';
                     alertBox.classList.remove('hidden');
                 }
                 if (submitBtn) {
@@ -107,9 +102,9 @@ const App = {
                 return;
             }
 
-            if (data.user.role !== 'Admin') {
+            if (data.user.role === 'Pet Owner') {
                 if (alertBox) {
-                    alertBox.textContent = `Access Denied: Only system Administrators can access the Admin Dashboard. Staff accounts (${data.user.role}) are not permitted.`;
+                    alertBox.textContent = `Access Denied: Pet Owners must sign in through the Customer Portal.`;
                     alertBox.classList.remove('hidden');
                 }
                 if (submitBtn) {
@@ -119,19 +114,29 @@ const App = {
                 return;
             }
 
-            // Save admin session in sessionStorage so closing the site forces re-login
+            // Save staff session in sessionStorage so closing the site forces re-login
             sessionStorage.setItem('pawlife_admin_user', JSON.stringify(data.user));
             localStorage.removeItem('pawlife_admin_user');
 
             if (submitBtn) {
-                submitBtn.innerHTML = '<i class="fas fa-check-circle mr-2 text-emerald-400"></i>Verified Admin! Redirecting...';
+                submitBtn.innerHTML = '<i class="fas fa-check-circle mr-2 text-emerald-400"></i>Verified! Launching Workspace...';
             }
 
             const staffId = data.user.staff_id || `STF-${String(data.user.user_id).padStart(3, '0')}`;
-            this.showToast(`Welcome Administrator ${data.user.first_name}! [${staffId}] Launching Dashboard...`, 'success');
+            const roleLabel = data.user.role || 'Staff';
+            this.showToast(`Welcome back, ${data.user.first_name}! [${staffId}] (${roleLabel}) Launching Workspace...`, 'success');
+
+            // Determine designated workspace hash according to role
+            let targetHash = '#overview';
+            const role = (data.user.role || '').toLowerCase();
+            if (role.includes('groom')) targetHash = '#grooming';
+            else if (role.includes('vet')) targetHash = '#ehr';
+            else if (role.includes('inventory')) targetHash = '#inventory';
+            else if (role.includes('operat') || role.includes('centre')) targetHash = '#operations';
+            else if (role.includes('recept') || role.includes('front')) targetHash = '#booking';
 
             setTimeout(() => {
-                window.location.href = '/dashboard';
+                window.location.href = `/dashboard.html${targetHash}`;
             }, 400);
 
         } catch (err) {

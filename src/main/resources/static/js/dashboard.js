@@ -22,28 +22,50 @@ const DashboardApp = {
         this.bindEvents();
         this.startLiveClock();
 
-        // Load all data modules
-        await this.loadAllModules();
+        // 1. Strict Role-Based View Determination
+        let user = null;
+        try {
+            const userStr = sessionStorage.getItem('pawlife_admin_user');
+            if (userStr) user = JSON.parse(userStr);
+        } catch (e) {}
 
-        // Switch to default or URL hash view
+        const allowedViews = this.getAllowedViewsForRole(user?.role);
+        const defaultView = allowedViews[0] || 'overview';
+
+        // Load modules
+        if (user && user.role === 'Admin') {
+            await this.loadAllModules();
+        }
+
         const hash = window.location.hash.replace('#', '');
-        const validViews = ['overview', 'booking', 'ehr', 'inventory', 'grooming', 'operations', 'admin'];
-        if (validViews.includes(hash)) {
+        if (hash && allowedViews.includes(hash)) {
             await this.switchView(hash);
         } else {
-            await this.switchView('overview');
+            await this.switchView(defaultView);
         }
 
         // 2. Start Real-time Live Notifications Poller (without refreshing)
         this.startLiveAlertPoller();
     },
 
+    getAllowedViewsForRole(roleName) {
+        if (!roleName) return [];
+        if (roleName === 'Admin') {
+            return ['overview', 'booking', 'ehr', 'inventory', 'grooming', 'operations', 'admin'];
+        }
+        const r = roleName.toLowerCase();
+        if (r.includes('groom')) return ['grooming'];
+        if (r.includes('vet')) return ['ehr'];
+        if (r.includes('inventory')) return ['inventory'];
+        if (r.includes('operat') || r.includes('centre')) return ['operations'];
+        if (r.includes('recept') || r.includes('front')) return ['booking'];
+        return ['overview'];
+    },
+
     checkAuth() {
         const overlay = document.getElementById('admin-auth-overlay');
-        // Check sessionStorage first (required: must sign in every time they visit if closed site)
         let userStr = sessionStorage.getItem('pawlife_admin_user');
         
-        // If not in sessionStorage, check localStorage for seamless migration, then move to sessionStorage
         if (!userStr && localStorage.getItem('pawlife_admin_user')) {
             userStr = localStorage.getItem('pawlife_admin_user');
             sessionStorage.setItem('pawlife_admin_user', userStr);
@@ -57,15 +79,15 @@ const DashboardApp = {
 
         try {
             const user = JSON.parse(userStr);
-            // Strictly enforce: ONLY Administrator role can access the Admin Dashboard
-            if (user && user.role === 'Admin') {
+            // Allow all authorized clinic staff accounts (Admin, Veterinarian, Grooming Staff, Inventory Manager, Operations Manager, Receptionist)
+            if (user && user.role && user.role !== 'Pet Owner') {
                 if (overlay) overlay.classList.add('hidden');
                 this.updateAdminSidebar(user);
                 return true;
             } else {
                 sessionStorage.removeItem('pawlife_admin_user');
                 localStorage.removeItem('pawlife_admin_user');
-                window.location.href = '/?auth=admin&error=admin_only';
+                window.location.href = '/?auth=admin&error=staff_only';
                 return false;
             }
         } catch (e) {
@@ -87,13 +109,60 @@ const DashboardApp = {
             avatarEl.textContent = initials;
         }
 
-        // Update badge below admin name in sidebar
+        // Update badge below staff name in sidebar
         const roleBadgeEl = document.querySelector('#sidebar-admin-name + div');
         if (roleBadgeEl) {
+            const isAdmin = user.role === 'Admin';
             roleBadgeEl.innerHTML = `
-                <i class="fas fa-id-badge text-[9px] text-[#FF5A27]"></i>
+                <i class="fas ${isAdmin ? 'fa-shield-alt text-amber-400' : 'fa-id-badge text-[#FF5A27]'} text-[9px]"></i>
                 <span class="font-mono">${staffId}</span> • <span>${user.role || 'Staff'}</span>
             `;
+        }
+
+        // Update sidebar section subtitle
+        const subtitleEl = document.querySelector('span.uppercase.tracking-wider.font-mono');
+        if (subtitleEl) {
+            const r = (user.role || '').toLowerCase();
+            if (user.role === 'Admin') subtitleEl.textContent = 'Hospital VetOps (Admin)';
+            else if (r.includes('groom')) subtitleEl.textContent = 'Grooming Salon Portal';
+            else if (r.includes('vet')) subtitleEl.textContent = 'Clinical EHR Portal';
+            else if (r.includes('inventory')) subtitleEl.textContent = 'Inventory Portal';
+            else if (r.includes('operat') || r.includes('centre')) subtitleEl.textContent = 'Operations Portal';
+            else if (r.includes('recept') || r.includes('front')) subtitleEl.textContent = 'Appointments Portal';
+        }
+
+        // Strict Role-Based Sidebar: ONLY show their assigned department button
+        const allowedViews = this.getAllowedViewsForRole(user.role);
+        document.querySelectorAll('.sidebar-nav-btn').forEach(btn => {
+            const v = btn.dataset.view;
+            if (allowedViews.includes(v)) {
+                btn.classList.remove('hidden');
+                btn.style.display = 'flex';
+            } else {
+                btn.classList.add('hidden');
+                btn.style.display = 'none';
+            }
+        });
+
+        // Hide "+ New Action" dropdown for non-admins to prevent launching other role functions
+        const quickActionWrapper = document.getElementById('dash-quick-action-btn')?.parentElement;
+        if (quickActionWrapper) {
+            if (user.role === 'Admin') {
+                quickActionWrapper.classList.remove('hidden');
+            } else {
+                quickActionWrapper.classList.add('hidden');
+            }
+        }
+
+        // Hide global search if not admin or vet
+        const searchInput = document.getElementById('dash-global-search');
+        const searchContainer = searchInput?.parentElement;
+        if (searchContainer) {
+            if (user.role === 'Admin' || (user.role && user.role.toLowerCase().includes('vet'))) {
+                searchContainer.classList.remove('hidden');
+            } else {
+                searchContainer.classList.add('hidden');
+            }
         }
     },
 
@@ -132,8 +201,8 @@ const DashboardApp = {
                 return;
             }
 
-            if (!data.user || data.user.role !== 'Admin') {
-                this.showAuthError('Access Denied: Only system Administrators are authorized to access the Admin Dashboard.');
+            if (!data.user || data.user.role === 'Pet Owner') {
+                this.showAuthError('Access Denied: Pet Owners should use the Customer Portal to sign in.');
                 return;
             }
 
@@ -146,14 +215,24 @@ const DashboardApp = {
             if (overlay) overlay.classList.add('hidden');
 
             const staffId = data.user.staff_id || `STF-${String(data.user.user_id).padStart(3, '0')}`;
-            this.showToast(`Welcome back, ${data.user.first_name}! [${staffId}] Unlocked.`, 'success');
+            const roleLabel = data.user.role || 'Staff';
+            this.showToast(`Welcome back, ${data.user.first_name}! [${staffId}] (${roleLabel}) Unlocked.`, 'success');
             this.updateAdminSidebar(data.user);
 
             // Continue dashboard initialization
             this.bindEvents();
             this.startLiveClock();
             await this.loadAllModules();
-            await this.switchView('overview');
+
+            let defaultView = 'overview';
+            const r = (data.user.role || '').toLowerCase();
+            if (r.includes('groom')) defaultView = 'grooming';
+            else if (r.includes('vet')) defaultView = 'ehr';
+            else if (r.includes('inventory')) defaultView = 'inventory';
+            else if (r.includes('operat')) defaultView = 'operations';
+            else if (r.includes('recept')) defaultView = 'booking';
+
+            await this.switchView(defaultView);
             this.startLiveAlertPoller();
         } catch (err) {
             this.showAuthError('Connection error during authentication: ' + err.message);
@@ -175,12 +254,7 @@ const DashboardApp = {
     },
 
     autofillAdmin() {
-        const usernameInput = document.getElementById('admin-login-username');
-        const passwordInput = document.getElementById('admin-login-password');
-        if (usernameInput) usernameInput.value = 'STF-001';
-        if (passwordInput) passwordInput.value = 'password123';
-        const errorAlert = document.getElementById('auth-error-alert');
-        if (errorAlert) errorAlert.classList.add('hidden');
+        // Master admin details completely purged
     },
 
     logout() {
@@ -306,6 +380,14 @@ const DashboardApp = {
                 }
             });
         }
+
+        // Listen for manual URL hash updates and enforce strict role boundaries
+        window.addEventListener('hashchange', () => {
+            const requestedHash = window.location.hash.replace('#', '');
+            if (requestedHash && requestedHash !== this.currentView) {
+                this.switchView(requestedHash);
+            }
+        });
     },
 
     startLiveClock() {
@@ -345,6 +427,24 @@ const DashboardApp = {
     },
 
     async switchView(viewId) {
+        let user = null;
+        try {
+            const userStr = sessionStorage.getItem('pawlife_admin_user');
+            if (userStr) user = JSON.parse(userStr);
+        } catch (e) {}
+
+        const userRole = user?.role || 'Staff';
+        const allowedViews = this.getAllowedViewsForRole(userRole);
+
+        if (!allowedViews.includes(viewId)) {
+            const primaryView = allowedViews[0] || 'overview';
+            this.showToast(`Access Restricted: As ${userRole}, you only have clearance for your designated department.`, 'danger');
+            if (this.currentView !== primaryView) {
+                await this.switchView(primaryView);
+            }
+            return;
+        }
+
         this.currentView = viewId;
         window.location.hash = viewId;
 

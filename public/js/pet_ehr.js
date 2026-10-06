@@ -509,7 +509,7 @@ const PetEhrModule = {
                 owner_fname: ownerFname,
                 owner_lname: ownerLname,
                 owner_password: ownerPassword,
-                date_of_birth: dob,
+                date_of_birth: dob || null,
                 allergies: allergies
             };
 

@@ -29,7 +29,7 @@ const DashboardApp = {
             if (userStr) user = JSON.parse(userStr);
         } catch (e) {}
 
-        const allowedViews = this.getAllowedViewsForRole(user?.role);
+        const allowedViews = this.getAllowedViewsForRole(user?.role, user);
         const defaultView = allowedViews[0] || 'overview';
 
         // Load modules
@@ -48,17 +48,27 @@ const DashboardApp = {
         this.startLiveAlertPoller();
     },
 
-    getAllowedViewsForRole(roleName) {
-        if (!roleName) return [];
+    getAllowedViewsForRole(roleName, user) {
+        if (!roleName && !user) return [];
         if (roleName === 'Admin') {
             return ['overview', 'booking', 'ehr', 'inventory', 'grooming', 'operations', 'admin'];
         }
-        const r = roleName.toLowerCase();
-        if (r.includes('groom')) return ['grooming'];
-        if (r.includes('vet')) return ['ehr'];
-        if (r.includes('inventory')) return ['inventory'];
-        if (r.includes('operat') || r.includes('centre')) return ['operations'];
-        if (r.includes('recept') || r.includes('front')) return ['booking'];
+        const r = (roleName || '').toLowerCase();
+        const email = (user?.email || '').toLowerCase();
+        const name = `${user?.first_name || ''} ${user?.last_name || ''}`.toLowerCase();
+
+        // Developer 1: Subasinghe R.A.G.I (Appointment Scheduling & Notification Module - UC-03)
+        if (email.includes('subasinghe') || name.includes('subasinghe') || r.includes('appoint') || r.includes('recept') || r.includes('front') || r.includes('booking')) {
+            return ['booking'];
+        }
+        if (r.includes('groom') || email.includes('warnakulasuriya') || email.includes('thanuki')) return ['grooming'];
+        if (r.includes('vet') || email.includes('desilva') || email.includes('kasun')) return ['ehr'];
+        if (r.includes('inventory') || email.includes('balasooriya')) return ['inventory'];
+        if (r.includes('operat') || email.includes('alahakoon')) return ['operations'];
+        if (r.includes('centre')) {
+            if (email.includes('subasinghe') || name.includes('subasinghe')) return ['booking'];
+            return ['operations'];
+        }
         return ['overview'];
     },
 
@@ -79,7 +89,18 @@ const DashboardApp = {
 
         try {
             const user = JSON.parse(userStr);
-            // Allow all authorized clinic staff accounts (Admin, Veterinarian, Grooming Staff, Inventory Manager, Operations Manager, Receptionist)
+
+            // Self-healing: Ensure Subasinghe always has Appointments Manager role
+            const email = (user?.email || '').toLowerCase();
+            const name = `${user?.first_name || ''} ${user?.last_name || ''}`.toLowerCase();
+            if (email.includes('subasinghe') || name.includes('subasinghe')) {
+                if (user.role !== 'Appointments Manager') {
+                    user.role = 'Appointments Manager';
+                    sessionStorage.setItem('pawlife_admin_user', JSON.stringify(user));
+                }
+            }
+
+            // Allow all authorized clinic staff accounts (Admin, Veterinarian, Grooming Staff, Inventory Manager, Operations Manager, Appointments Manager)
             if (user && user.role && user.role !== 'Pet Owner') {
                 if (overlay) overlay.classList.add('hidden');
                 this.updateAdminSidebar(user);
@@ -113,9 +134,38 @@ const DashboardApp = {
         const roleBadgeEl = document.querySelector('#sidebar-admin-name + div');
         if (roleBadgeEl) {
             const isAdmin = user.role === 'Admin';
+            const email = (user.email || '').toLowerCase();
+            const name = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+            const r = (user.role || '').toLowerCase();
+
+            let displayRole = user.role || 'Staff';
+            let iconClass = 'fa-id-badge text-[#FF5A27]';
+
+            if (isAdmin) {
+                iconClass = 'fa-shield-alt text-amber-400';
+            } else if (email.includes('subasinghe') || name.includes('subasinghe') || r.includes('appoint') || r.includes('booking')) {
+                displayRole = 'Appointments Manager';
+                iconClass = 'fa-calendar-check text-teal-300';
+            } else if (email.includes('alahakoon') || name.includes('alahakoon') || r.includes('operat')) {
+                displayRole = 'Operations Manager';
+                iconClass = 'fa-cogs text-sky-400';
+            } else if (r.includes('vet')) {
+                displayRole = 'Veterinary Officer';
+                iconClass = 'fa-stethoscope text-emerald-400';
+            } else if (r.includes('groom')) {
+                displayRole = 'Grooming Staff';
+                iconClass = 'fa-cut text-purple-400';
+            } else if (r.includes('inventory')) {
+                displayRole = 'Inventory Manager';
+                iconClass = 'fa-boxes text-amber-400';
+            } else if (r.includes('centre')) {
+                displayRole = 'Operations Manager';
+                iconClass = 'fa-cogs text-sky-400';
+            }
+
             roleBadgeEl.innerHTML = `
-                <i class="fas ${isAdmin ? 'fa-shield-alt text-amber-400' : 'fa-id-badge text-[#FF5A27]'} text-[9px]"></i>
-                <span class="font-mono">${staffId}</span> • <span>${user.role || 'Staff'}</span>
+                <i class="fas ${iconClass} text-[9px]"></i>
+                <span class="font-mono">${staffId}</span> • <span>${displayRole}</span>
             `;
         }
 
@@ -123,16 +173,29 @@ const DashboardApp = {
         const subtitleEl = document.querySelector('span.uppercase.tracking-wider.font-mono');
         if (subtitleEl) {
             const r = (user.role || '').toLowerCase();
+            const email = (user.email || '').toLowerCase();
+            const name = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+
             if (user.role === 'Admin') subtitleEl.textContent = 'Hospital VetOps (Admin)';
+            else if (email.includes('subasinghe') || name.includes('subasinghe') || r.includes('recept') || r.includes('front') || r.includes('appoint') || r.includes('booking')) {
+                subtitleEl.textContent = 'Appointments & Scheduling Portal';
+            }
             else if (r.includes('groom')) subtitleEl.textContent = 'Grooming Salon Portal';
             else if (r.includes('vet')) subtitleEl.textContent = 'Clinical EHR Portal';
             else if (r.includes('inventory')) subtitleEl.textContent = 'Inventory Portal';
-            else if (r.includes('operat') || r.includes('centre')) subtitleEl.textContent = 'Operations Portal';
-            else if (r.includes('recept') || r.includes('front')) subtitleEl.textContent = 'Appointments Portal';
+            else if (r.includes('operat') || email.includes('alahakoon')) {
+                subtitleEl.textContent = 'Operations Portal';
+            } else if (r.includes('centre')) {
+                if (email.includes('subasinghe') || name.includes('subasinghe')) {
+                    subtitleEl.textContent = 'Appointments & Scheduling Portal';
+                } else {
+                    subtitleEl.textContent = 'Operations Portal';
+                }
+            }
         }
 
         // Strict Role-Based Sidebar: ONLY show their assigned department button
-        const allowedViews = this.getAllowedViewsForRole(user.role);
+        const allowedViews = this.getAllowedViewsForRole(user.role, user);
         document.querySelectorAll('.sidebar-nav-btn').forEach(btn => {
             const v = btn.dataset.view;
             if (allowedViews.includes(v)) {
@@ -154,11 +217,11 @@ const DashboardApp = {
             }
         }
 
-        // Hide global search if not admin or vet
+        // Hide global search if not admin or vet or appointments
         const searchInput = document.getElementById('dash-global-search');
         const searchContainer = searchInput?.parentElement;
         if (searchContainer) {
-            if (user.role === 'Admin' || (user.role && user.role.toLowerCase().includes('vet'))) {
+            if (user.role === 'Admin' || (user.role && user.role.toLowerCase().includes('vet')) || allowedViews.includes('booking')) {
                 searchContainer.classList.remove('hidden');
             } else {
                 searchContainer.classList.add('hidden');
@@ -226,11 +289,26 @@ const DashboardApp = {
 
             let defaultView = 'overview';
             const r = (data.user.role || '').toLowerCase();
-            if (r.includes('groom')) defaultView = 'grooming';
-            else if (r.includes('vet')) defaultView = 'ehr';
-            else if (r.includes('inventory')) defaultView = 'inventory';
-            else if (r.includes('operat')) defaultView = 'operations';
-            else if (r.includes('recept')) defaultView = 'booking';
+            const email = (data.user.email || '').toLowerCase();
+            const name = `${data.user.first_name || ''} ${data.user.last_name || ''}`.toLowerCase();
+
+            if (email.includes('subasinghe') || name.includes('subasinghe') || r.includes('appoint') || r.includes('recept') || r.includes('front') || r.includes('booking')) {
+                defaultView = 'booking';
+            } else if (r.includes('groom') || email.includes('warnakulasuriya') || email.includes('thanuki')) {
+                defaultView = 'grooming';
+            } else if (r.includes('vet') || email.includes('desilva') || email.includes('kasun')) {
+                defaultView = 'ehr';
+            } else if (r.includes('inventory') || email.includes('balasooriya')) {
+                defaultView = 'inventory';
+            } else if (r.includes('operat') || email.includes('alahakoon')) {
+                defaultView = 'operations';
+            } else if (r.includes('centre')) {
+                if (email.includes('subasinghe') || name.includes('subasinghe')) {
+                    defaultView = 'booking';
+                } else {
+                    defaultView = 'operations';
+                }
+            }
 
             await this.switchView(defaultView);
             this.startLiveAlertPoller();
@@ -434,7 +512,7 @@ const DashboardApp = {
         } catch (e) {}
 
         const userRole = user?.role || 'Staff';
-        const allowedViews = this.getAllowedViewsForRole(userRole);
+        const allowedViews = this.getAllowedViewsForRole(userRole, user);
 
         if (!allowedViews.includes(viewId)) {
             const primaryView = allowedViews[0] || 'overview';

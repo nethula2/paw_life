@@ -126,14 +126,30 @@ const App = {
             const roleLabel = data.user.role || 'Staff';
             this.showToast(`Welcome back, ${data.user.first_name}! [${staffId}] (${roleLabel}) Launching Workspace...`, 'success');
 
-            // Determine designated workspace hash according to role
+            // Determine designated workspace hash according to role and team member module
             let targetHash = '#overview';
             const role = (data.user.role || '').toLowerCase();
-            if (role.includes('groom')) targetHash = '#grooming';
-            else if (role.includes('vet')) targetHash = '#ehr';
-            else if (role.includes('inventory')) targetHash = '#inventory';
-            else if (role.includes('operat') || role.includes('centre')) targetHash = '#operations';
-            else if (role.includes('recept') || role.includes('front')) targetHash = '#booking';
+            const email = (data.user.email || '').toLowerCase();
+            const name = `${data.user.first_name || ''} ${data.user.last_name || ''}`.toLowerCase();
+
+            // Developer 1: Subasinghe R.A.G.I (Appointment Scheduling & Notifications UC-03)
+            if (email.includes('subasinghe') || name.includes('subasinghe') || role.includes('appoint') || role.includes('recept') || role.includes('front') || role.includes('booking')) {
+                targetHash = '#booking';
+            } else if (role.includes('groom') || email.includes('warnakulasuriya') || email.includes('thanuki')) {
+                targetHash = '#grooming';
+            } else if (role.includes('vet') || email.includes('desilva') || email.includes('kasun')) {
+                targetHash = '#ehr';
+            } else if (role.includes('inventory') || email.includes('balasooriya')) {
+                targetHash = '#inventory';
+            } else if (role.includes('operat') || email.includes('alahakoon')) {
+                targetHash = '#operations';
+            } else if (role.includes('centre')) {
+                if (email.includes('subasinghe') || name.includes('subasinghe')) {
+                    targetHash = '#booking';
+                } else {
+                    targetHash = '#operations';
+                }
+            }
 
             setTimeout(() => {
                 window.location.href = `/dashboard.html${targetHash}`;

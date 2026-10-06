@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(120) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
-    role VARCHAR(30) NOT NULL CHECK(role IN ('Admin', 'Centre Manager', 'Veterinary Officer', 'Grooming Staff', 'Inventory Manager', 'Pet Owner')),
+    role VARCHAR(30) NOT NULL CHECK(role IN ('Admin', 'Centre Manager', 'Appointments Manager', 'Veterinary Officer', 'Grooming Staff', 'Inventory Manager', 'Pet Owner')),
     status VARCHAR(20) DEFAULT 'Active' CHECK(status IN ('Active', 'Inactive', 'Suspended')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

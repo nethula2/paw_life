@@ -51,7 +51,7 @@ public class GroomingController {
 
             long sessionId = Database.executeInsert(
                 "INSERT INTO grooming_sessions (appointment_id, pet_id, groomer_id, service_id, progress_status, coat_condition, observations, started_at) " +
-                "VALUES (?, ?, 3, ?, 'Checked-in', ?, ?, datetime('now', 'localtime'))",
+                "VALUES (?, ?, 3, ?, 'Checked-in', ?, ?, CURRENT_TIMESTAMP)",
                 apptId > 0 ? apptId : null, petId, serviceId, coat, obs
             );
 

@@ -200,7 +200,8 @@ public class CustomerController {
             String petName = (String) body.get("pet_name");
             String species = (String) body.getOrDefault("species", "Dog");
             String breed = (String) body.getOrDefault("breed", "Mixed Breed");
-            String dob = (String) body.getOrDefault("date_of_birth", LocalDate.now().minusYears(1).toString());
+            String rawDob = (String) body.get("date_of_birth");
+            String dob = (rawDob != null && !rawDob.trim().isEmpty()) ? rawDob.trim() : null;
             String gender = (String) body.getOrDefault("gender", "Male");
             String chip = (String) body.getOrDefault("microchip_no", "MC-" + (int)(100000 + Math.random() * 900000));
             String notes = (String) body.getOrDefault("medical_notes", "Registered via pet parent portal");

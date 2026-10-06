@@ -75,7 +75,8 @@ public class PetController {
             String name = (String) body.get("pet_name");
             String species = (String) body.getOrDefault("species", "Dog");
             String breed = (String) body.getOrDefault("breed", "Mixed Breed");
-            String dob = (String) body.getOrDefault("date_of_birth", LocalDate.now().minusYears(1).toString());
+            String rawDob = (String) body.get("date_of_birth");
+            String dob = (rawDob != null && !rawDob.trim().isEmpty()) ? rawDob.trim() : null;
             String gender = (String) body.getOrDefault("gender", "Male");
             String chip = (String) body.get("microchip_no");
             String allergies = (String) body.getOrDefault("allergies", "None");
@@ -138,7 +139,7 @@ public class PetController {
                 try {
                     id = Database.executeInsert(
                         "INSERT INTO pets (owner_id, pet_name, species, breed, date_of_birth, gender, microchip_no, allergies) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        ownerId, name.trim(), species.trim(), breed.trim(), dob.trim(), gender.trim(), chip.trim(), allergies.trim()
+                        ownerId, name.trim(), species.trim(), breed.trim(), dob, gender.trim(), chip.trim(), allergies.trim()
                     );
                     break;
                 } catch (Exception e) {

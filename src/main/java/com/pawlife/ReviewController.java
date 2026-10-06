@@ -14,19 +14,37 @@ public class ReviewController {
     @PostConstruct
     public void initReviewsTable() {
         try {
-            Database.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS reviews (" +
-                "review_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "customer_name TEXT NOT NULL, " +
-                "pet_name TEXT, " +
-                "service_type TEXT, " +
-                "rating INTEGER CHECK(rating >= 1 AND rating <= 5), " +
-                "review_text TEXT NOT NULL, " +
-                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
-                ")"
-            );
-        } catch (Exception e) {
-            System.err.println("Failed to initialize reviews table: " + e.getMessage());
+            Database.query("SELECT 1 FROM reviews LIMIT 1");
+        } catch (Exception notExist) {
+            try {
+                Database.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS reviews (" +
+                    "review_id INT AUTO_INCREMENT PRIMARY KEY, " +
+                    "customer_name VARCHAR(120) NOT NULL, " +
+                    "pet_name VARCHAR(60), " +
+                    "service_type VARCHAR(60), " +
+                    "rating INT, " +
+                    "review_text TEXT NOT NULL, " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                    ")"
+                );
+            } catch (Exception e) {
+                try {
+                    Database.executeUpdate(
+                        "CREATE TABLE IF NOT EXISTS reviews (" +
+                        "review_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "customer_name TEXT NOT NULL, " +
+                        "pet_name TEXT, " +
+                        "service_type TEXT, " +
+                        "rating INTEGER, " +
+                        "review_text TEXT NOT NULL, " +
+                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                        ")"
+                    );
+                } catch (Exception ex) {
+                    System.err.println("Failed to initialize reviews table: " + ex.getMessage());
+                }
+            }
         }
     }
 
